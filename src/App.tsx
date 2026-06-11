@@ -92,16 +92,27 @@ export default function App() {
       const rec = calculateRowBid(row, config);
 
       if (overrides[row.id] !== undefined) {
-        const manualBid = overrides[row.id];
+        const rawManualBid = overrides[row.id];
+        // Force re-validation: clamp the manual override to current config's min/max bounds
+        const manualBid = Math.max(config.minBid, Math.min(config.maxBid, rawManualBid));
         const curBid = row.currentBid || row.cpc || 1.00;
 
         let action: "SCALE" | "REDUCE" | "HOLD" = "HOLD";
-        let reason = `Target manually adjusted from $${curBid.toFixed(2)} to $${manualBid.toFixed(2)}.`;
+        let reason = "";
 
-        if (manualBid > curBid) {
+        if (manualBid > curBid + 0.005) {
           action = "SCALE";
-        } else if (manualBid < curBid) {
+          reason = `Target manually adjusted from $${curBid.toFixed(2)} to $${manualBid.toFixed(2)}.`;
+        } else if (manualBid < curBid - 0.005) {
           action = "REDUCE";
+          reason = `Target manually adjusted from $${curBid.toFixed(2)} to $${manualBid.toFixed(2)}.`;
+        } else {
+          action = "HOLD";
+          reason = `Target manually set to match baseline current bid ($${manualBid.toFixed(2)}).`;
+        }
+
+        if (manualBid !== rawManualBid) {
+          reason += ` (Clamped to current strategy limits [$${config.minBid.toFixed(2)} - $${config.maxBid.toFixed(2)}]).`;
         }
 
         recs[row.id] = {
