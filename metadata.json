@@ -1,0 +1,6 @@
+{
+  "name": "WesBid Optimizer",
+  "description": "A high-performance interactive bulk bid simulation and optimization lab for Amazon Ads PPC reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
