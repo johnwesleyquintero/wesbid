@@ -17,20 +17,33 @@ The interface is built to prioritize mathematical data density and workflow flow
 
 ## 🚀 Key Functional Modules
 
-### 1. Formula Bidding Cockpit
-Our multi-variable bidding engine dynamically calculates target recommendations utilizing mathematical formulas rather than rigid static thresholds:
-$$\text{Recommended Target Bid} = \frac{\text{Orders}}{\text{Clicks}} \times \text{Average Order Value} \times \text{Target ACOS}$$
-- **Target ACOS Slider (5% – 90%)**: Set your efficiency threshold parameter.
-- **Dampening Shift Slide (10% – 100%)**: Smooths recommended bid swings. Lower dampening protects you against extreme cpc volatility.
-- **Learning Phase Protection**: Keywords with clicks below your click threshold holding zero sales are gracefully protected to gather sufficient statistical significance.
-- **Bleeder Penalties**: Detects and flags low-converting click dumps ("bleeders") to apply immediate customizable penalty reductions (e.g. -40% bid shifts).
-- **Bidding Caps & Floors**: Absolute safeguard ceilings and floors to secure campaigns from rogue budget drains.
+### 1. Formula Bidding Cockpit & WesBid v3 Adaptive Engine
+Our bidding engine dynamically calculates target recommendations utilizing mathematical formulas combined with state-driven confidence modeling and target intent layers:
+$$\text{Recommended Target Bid} = \text{Baseline CPC} \times \frac{\text{Target ACOS}}{\text{Actual ACOS}} \times \text{Adaptive Modifier}$$
 
-### 2. Sandbox Overrides (Individual & Bulk)
-- **Active Human Micro-steps**: Double-click or override any keyword directly to bypass the computer mathematical recommendations.
+- **Target ACOS Slider (5% – 90%)**: Set your efficiency threshold parameter.
+- **Dampening Shift Slide (10% – 100%)**: Smooths recommended bid swings. Lower dampening protects you against extreme CPC volatility.
+- **WesBid v3 Adaptive Engine Control (Toggle-enabled)**:
+  - **Confidence Scaling Coefficient (10% – 100%)**: Dynamically restricts bid adjustment speed based on conversion stability state records. Solves single-order instability (reduces scaling speed by 50% for 1 order, and 20% for <=3 orders) to avoid bidding hikes on statistically thin data.
+  - **ACOS Performance Decay Gravity**: Applies safety drag to bid increases on keywords exhibiting high-ACOS decay.
+  - **TOS Conversion Stability Safety Gate**: Strict protection gate. The 15% Top-of-Search placement boost is only unlocked once a high-margin target clears a safety benchmark of **at least 5 clicks** and **1 real order**, guarding against phantom ROAS scaling.
+- **Intent-Layered Targeting**:
+  - **Exact Match Priority**: High-confidence targets receive elevated efficiency thresholds, lowered learning boundaries, and optimized safety limits to scale dominance.
+  - **Broad/Auto Protection**: Controls automated search leakage by tightening click thresholds and accelerating waste penalties.
+  - **ASIN (PAT) Placements**: Custom parameter bounds adjusted dynamically for product detail pages.
+
+### 2. Live Baselines & Micro Overrides
+- **Custom "Current Bid" Ingest**: Operators can manual-input custom baseline bids directly in the table to align the model with real-time live Seller Central Console configurations instantly.
+- **Active Human Micro-steps**: Double-click or override any keyword directly to override the computer recommendations.
 - **Bulk Action Drawer**: Multi-select row checklist targets to increase/decrease bids by specific percentages, or bulk-set hard scale/reduction forces.
 
-### 3. Analytics Delta & Visualizers
+### 3. Search Term Granularity & Negative Harvester
+While legacy tools guess, WesBid parses underlying customer search queries inside targeting branches and processes them under three intent-confidence tiers:
+- **🔍 Observing Phase** (1–2 clicks, 0 orders): Passive evaluation; blocks premature negative flagging.
+- **⚠️ Weak Waste Signal** (3–5 clicks, 0 orders): Flags keyword as a weak signal, advising manual monitoring.
+- **🚨 Hard Negative Candidate** (6+ clicks, 0 orders): Flags critical leakage. Recommends adding as Negative Exact in Seller Central to instantly cut bleeders.
+
+### 4. Analytics Delta & Visualizers
 - **Simulated Spend Elasticity**: Real-time estimates of incoming budget shifts, variance percentages, and average recommendations.
 - **Area-Area Distribution Charts**: Built with standard fully responsive Recharts displaying current vs. recommended bid distribution to easily spot anomalies.
 
