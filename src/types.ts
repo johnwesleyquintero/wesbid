@@ -19,6 +19,15 @@ export interface AmazonPpcRow {
   acos: number; // calculated as spend / sales, or parsed from report
   cvr: number; // orders / clicks
   currentBid?: number; // optionally parsed from report
+  searchTerms?: {
+    term: string;
+    impressions: number;
+    clicks: number;
+    spend: number;
+    sales: number;
+    orders: number;
+    acos: number;
+  }[];
 }
 
 export interface BidRecommendation {

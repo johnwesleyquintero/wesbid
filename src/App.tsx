@@ -36,6 +36,15 @@ export default function App() {
   // PPC Data States
   const [ppcRows, setPpcRows] = useState<AmazonPpcRow[]>([]);
   const [filename, setFilename] = useState<string>("");
+  const [rawRecordsCount, setRawRecordsCount] = useState<number>(0);
+  const [showDedupeAlert, setShowDedupeAlert] = useState<boolean>(true);
+
+  // Compute detected report layout type
+  const reportType = useMemo(() => {
+    if (ppcRows.length === 0) return "";
+    const hasSearchTerms = ppcRows.some(row => row.searchTerms && row.searchTerms.length > 0);
+    return hasSearchTerms ? "Amazon Search Term Report" : "Amazon Targeting Report";
+  }, [ppcRows]);
 
   // Preset Strategy State
   const [activeStrategy, setActiveStrategy] = useState<StrategyPreset>("BALANCED");
@@ -67,11 +76,13 @@ export default function App() {
   };
 
   // Callback: Data loaded from Dropzone
-  const handleDataLoaded = (rows: AmazonPpcRow[], name: string) => {
+  const handleDataLoaded = (rows: AmazonPpcRow[], name: string, rawCount?: number) => {
     setPpcRows(rows);
     setFilename(name);
     setOverrides({});
     setActiveTab("TABLE");
+    setRawRecordsCount(rawCount !== undefined ? rawCount : rows.length);
+    setShowDedupeAlert(true);
   };
 
   // Re-calculate recommended bids and user overrides on-the-fly
@@ -189,6 +200,8 @@ export default function App() {
     setPpcRows([]);
     setFilename("");
     setOverrides({});
+    setRawRecordsCount(0);
+    setShowDedupeAlert(true);
   };
 
   return (
@@ -441,6 +454,35 @@ export default function App() {
 
             {/* RIGHT COLUMN: TABS PANEL (TABLE | SUMMARY | COPILOT) */}
             <section className={`${isSidebarOpen ? "lg:col-span-3" : "lg:col-span-4"} space-y-6 transition-all`}>
+              
+              {/* V2 Consolidator Banner */}
+              {showDedupeAlert && ppcRows.length > 0 && (
+                <div className="bg-emerald-50/70 border border-emerald-200/60 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xs">
+                  <div className="flex items-start md:items-center gap-3">
+                    <div className="h-6 px-2.5 bg-emerald-600 text-white text-[9px] font-black uppercase rounded-md tracking-wider flex items-center justify-center select-none shadow-xs whitespace-nowrap">
+                      {reportType === "Amazon Search Term Report" ? "Search Term Mode" : "Targeting Mode"}
+                    </div>
+                    <div className="text-xs text-emerald-800 leading-relaxed font-medium">
+                      <span className="font-bold text-emerald-950">Successfully Mapped {reportType}:</span>{" "}
+                      {rawRecordsCount > ppcRows.length ? (
+                        <span>
+                          Combined <span className="font-extrabold text-emerald-950 underline">{rawRecordsCount}</span> report slices into <span className="font-extrabold text-emerald-950 underline">{ppcRows.length}</span> unique target keys (collapsed <span className="font-bold">{rawRecordsCount - ppcRows.length}</span> duplicates cleanly with chronologically resolved Max-Bid metrics).
+                        </span>
+                      ) : (
+                        <span>
+                          Imported and mapped <span className="font-extrabold text-emerald-950">{ppcRows.length}</span> target keywords/ASINs directly with full campaign-level performance telemetry.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowDedupeAlert(false)}
+                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-950 cursor-pointer bg-emerald-100 hover:bg-emerald-200/80 px-2.5 py-1 rounded transition whitespace-nowrap self-end md:self-auto"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
               
               {/* Top Navigation Row / Core Action Downloads */}
               <div className="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 shadow-xs">

@@ -74,44 +74,68 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
 
   const idxCampaign = getIndex(["Campaign", "Campaign Name", "campaign"]);
   const idxAdGroup = getIndex(["Ad Group", "Ad Group Name", "adgroup", "ad groups"]);
-  const idxTargeting = getIndex(["Keyword", "Targeting", "Customer Search Term", "Search Term", "Keyword or product targeting", "target", "searchTerm"]);
+  const idxTargeting = getIndex(["Keyword", "Targeting", "Keyword or product targeting", "target"]);
+  const idxSearchTerm = getIndex(["Customer Search Term", "Search Term", "searchTerm", "customerSearchTerm", "term"]);
   const idxMatchType = getIndex(["Match Type", "Matchtype", "match"]);
   const idxImpressions = getIndex(["Impressions", "Impr", "impr", "impression"]);
   const idxClicks = getIndex(["Clicks", "clicks", "clickcount"]);
   const idxSpend = getIndex(["Spend", "spend", "cost", "total spend"]);
-  const idxSales = getIndex(["Sales", "Total Sales", "7 Day Total Sales", "7-day total sales", "total sales", "revenue", "sales volume"]);
-  const idxOrders = getIndex(["Orders", "Total Orders", "7 Day Total Orders", "7-day total orders", "total orders", "purchases", "order count"]);
+  const idxSales = getIndex(["Sales", "Total Sales", "7 Day Total Sales", "7-day total sales", "total sales", "revenue", "sales volume", "7 day total sales"]);
+  const idxOrders = getIndex(["Orders", "Total Orders", "7 Day Total Orders", "7-day total orders", "total orders", "purchases", "order count", "7 day total orders (#)"]);
   const idxCpc = getIndex(["CPC", "Cost Per Click", "Cost per click (CPC)", "cpc"]);
   const idxBid = getIndex(["Bid", "Current Bid", "Max Bid", "Keyword Bid", "bid", "ad group bid"]);
 
-  const rows: AmazonPpcRow[] = [];
+  const uniqueRowsMap = new Map<string, {
+    campaign: string;
+    adGroup: string;
+    targeting: string;
+    matchType: string;
+    impressions: number;
+    clicks: number;
+    spend: number;
+    sales: number;
+    orders: number;
+    bids: number[];
+    cpcs: number[];
+    searchTerms: Map<string, {
+      term: string;
+      impressions: number;
+      clicks: number;
+      spend: number;
+      sales: number;
+      orders: number;
+    }>;
+  }>();
 
   for (let i = 1; i < lines.length; i++) {
     const cells = splitLine(lines[i]);
     if (cells.length < 3) continue; // skip corrupted small rows
 
-    const campaign = idxCampaign !== -1 ? cells[idxCampaign] : "Default Campaign";
-    const adGroup = idxAdGroup !== -1 ? cells[idxAdGroup] : "Default Ad Group";
+    const campaign = idxCampaign !== -1 && cells[idxCampaign] ? cells[idxCampaign].trim() : "Default Campaign";
+    const adGroup = idxAdGroup !== -1 && cells[idxAdGroup] ? cells[idxAdGroup].trim() : "Default Ad Group";
     
+    // Extract customer search term if present
+    const customerSearchTerm = idxSearchTerm !== -1 && cells[idxSearchTerm]
+      ? cells[idxSearchTerm].replace(/^"(.*)"$/, "$1").trim()
+      : "";
+
     // Extract keyword or targeting clause
     let targeting = "General Targeting";
     if (idxTargeting !== -1 && cells[idxTargeting]) {
-      targeting = cells[idxTargeting].replace(/^"(.*)"$/, "$1"); // strip wrapping quotes
+      targeting = cells[idxTargeting].replace(/^"(.*)"$/, "$1").trim(); // strip wrapping quotes
+    } else if (customerSearchTerm) {
+      // Fallback: If no dedicated target group column exists, fall back to the Search Term itself!
+      targeting = customerSearchTerm;
     }
     
-    const matchType = idxMatchType !== -1 ? cells[idxMatchType] || "-" : "-";
+    const matchType = idxMatchType !== -1 && cells[idxMatchType] ? cells[idxMatchType].trim() : "-";
     const impressions = idxImpressions !== -1 ? parseNumeric(cells[idxImpressions]) : 0;
     const clicks = idxClicks !== -1 ? parseNumeric(cells[idxClicks]) : 0;
     const spend = idxSpend !== -1 ? parseNumeric(cells[idxSpend]) : 0;
     const sales = idxSales !== -1 ? parseNumeric(cells[idxSales]) : 0;
     const orders = idxOrders !== -1 ? parseNumeric(cells[idxOrders]) : 0;
+    const cpc = idxCpc !== -1 ? parseNumeric(cells[idxCpc]) : (clicks > 0 ? spend / clicks : 0);
     
-    // Derived values
-    const ctr = impressions > 0 ? clicks / impressions : 0;
-    const cvr = clicks > 0 ? orders / clicks : 0;
-    const cpc = clicks > 0 ? spend / clicks : (idxCpc !== -1 ? parseNumeric(cells[idxCpc]) : 0);
-    const acos = sales > 0 ? spend / sales : 0;
-
     // Optional parsed bid: if not present, we will estimate or use a default bid of $1.00
     let currentBid: number | undefined = undefined;
     if (idxBid !== -1 && cells[idxBid]) {
@@ -119,12 +143,131 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       if (bVal > 0) currentBid = bVal;
     }
 
+    // Standardize representation to lower-case for entity group key matching
+    const key = `${campaign.toLowerCase()}::${adGroup.toLowerCase()}::${targeting.toLowerCase()}::${matchType.toLowerCase()}`;
+
+    const existing = uniqueRowsMap.get(key);
+    if (!existing) {
+      const termsMap = new Map<string, {
+        term: string;
+        impressions: number;
+        clicks: number;
+        spend: number;
+        sales: number;
+        orders: number;
+      }>();
+
+      if (customerSearchTerm) {
+        termsMap.set(customerSearchTerm.toLowerCase(), {
+          term: customerSearchTerm,
+          impressions,
+          clicks,
+          spend,
+          sales,
+          orders
+        });
+      }
+
+      uniqueRowsMap.set(key, {
+        campaign,
+        adGroup,
+        targeting,
+        matchType,
+        impressions,
+        clicks,
+        spend,
+        sales,
+        orders,
+        bids: currentBid !== undefined ? [currentBid] : [],
+        cpcs: cpc > 0 ? [cpc] : [],
+        searchTerms: termsMap
+      });
+    } else {
+      existing.impressions += impressions;
+      existing.clicks += clicks;
+      existing.spend += spend;
+      existing.sales += sales;
+      existing.orders += orders;
+      if (currentBid !== undefined) {
+        existing.bids.push(currentBid);
+      }
+      if (cpc > 0) {
+        existing.cpcs.push(cpc);
+      }
+
+      if (customerSearchTerm) {
+        const termKey = customerSearchTerm.toLowerCase();
+        const existingTerm = existing.searchTerms.get(termKey);
+        if (!existingTerm) {
+          existing.searchTerms.set(termKey, {
+            term: customerSearchTerm,
+            impressions,
+            clicks,
+            spend,
+            sales,
+            orders
+          });
+        } else {
+          existingTerm.impressions += impressions;
+          existingTerm.clicks += clicks;
+          existingTerm.spend += spend;
+          existingTerm.sales += sales;
+          existingTerm.orders += orders;
+        }
+      }
+    }
+  }
+
+  const rows: AmazonPpcRow[] = [];
+  let index = 1;
+
+  uniqueRowsMap.forEach((data) => {
+    const impressions = data.impressions;
+    const clicks = data.clicks;
+    const spend = data.spend;
+    const sales = data.sales;
+    const orders = data.orders;
+
+    // Recalculate ratios cleanly
+    const ctr = impressions > 0 ? clicks / impressions : 0;
+    const cvr = clicks > 0 ? orders / clicks : 0;
+    
+    // Calculate best CPC approximation
+    let cpc = 0;
+    if (clicks > 0) {
+      cpc = spend / clicks;
+    } else if (data.cpcs.length > 0) {
+      // average non-zero CPC values if clicks are zero
+      cpc = data.cpcs.reduce((sum, val) => sum + val, 0) / data.cpcs.length;
+    }
+
+    const acos = sales > 0 ? spend / sales : 0;
+
+    // Preferred Bid: Latest active wins
+    let bid: number | undefined = undefined;
+    if (data.bids.length > 0) {
+      bid = data.bids[data.bids.length - 1];
+    }
+
+    // Convert search terms map to array, sorted descending by clicks then spend
+    const searchTermsArr = data.searchTerms.size > 0
+      ? Array.from(data.searchTerms.values()).map(t => ({
+          term: t.term,
+          impressions: t.impressions,
+          clicks: t.clicks,
+          spend: t.spend,
+          sales: t.sales,
+          orders: t.orders,
+          acos: t.sales > 0 ? t.spend / t.sales : 0
+        })).sort((a, b) => b.clicks - a.clicks || b.spend - a.spend)
+      : undefined;
+
     rows.push({
-      id: `ppc_${i}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      campaign,
-      adGroup,
-      targeting,
-      matchType,
+      id: `ppc_${index++}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      campaign: data.campaign,
+      adGroup: data.adGroup,
+      targeting: data.targeting,
+      matchType: data.matchType,
       impressions,
       clicks,
       ctr,
@@ -134,9 +277,10 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       sales,
       acos,
       cvr,
-      currentBid
+      currentBid: bid,
+      searchTerms: searchTermsArr
     });
-  }
+  });
 
   return rows;
 }

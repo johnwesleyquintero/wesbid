@@ -57,6 +57,19 @@ export default function BidTable({
   const [isOpenBulkMenu, setIsOpenBulkMenu] = useState(false);
   const [bulkMultiplierText, setBulkMultiplierText] = useState("10");
 
+  // Expanded query rows (collapse/rollup state)
+  const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
+
+  const toggleRowExpanded = (rowId: string) => {
+    const nextSet = new Set(expandedRowIds);
+    if (nextSet.has(rowId)) {
+      nextSet.delete(rowId);
+    } else {
+      nextSet.add(rowId);
+    }
+    setExpandedRowIds(nextSet);
+  };
+
   // Handle Header Sort Click
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -443,97 +456,172 @@ export default function BidTable({
                 }
 
                 return (
-                  <tr key={row.id} className={`hover:bg-slate-50/50 transition-colors ${checked ? "bg-slate-50/70" : ""}`}>
-                    {/* Checkbox */}
-                    <td className="p-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => handleSelectRow(row.id, e.target.checked)}
-                        className="rounded border-slate-300 focus:ring-brand accent-brand text-brand"
-                      />
-                    </td>
+                  <React.Fragment key={row.id}>
+                    <tr className={`hover:bg-slate-50/50 transition-colors ${checked ? "bg-slate-50/70" : ""} ${expandedRowIds.has(row.id) ? "bg-slate-50/40 border-b-0" : ""}`}>
+                      {/* Checkbox */}
+                      <td className="p-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => handleSelectRow(row.id, e.target.checked)}
+                          className="rounded border-slate-300 focus:ring-brand accent-brand text-brand"
+                        />
+                      </td>
 
-                    {/* Targeting details */}
-                    <td className="p-4 max-w-sm">
-                      <div className="font-semibold text-slate-900 tracking-tight break-words">{row.targeting}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                        <span className="font-medium bg-slate-100 text-slate-500 px-1.5 py-0.25 rounded">{row.matchType || "Broad"}</span>
-                        <span className="truncate">{row.campaign}</span>
-                        <span>•</span>
-                        <span className="truncate">{row.adGroup}</span>
-                      </div>
-                      
-                      {/* Reason text underneath */}
-                      {rec && (
-                        <div className="text-[10px] text-slate-500 italic mt-1 bg-slate-50 p-1.5 rounded border border-slate-100 leading-normal">
-                          {rec.reason}
+                      {/* Targeting details */}
+                      <td className="p-4 max-w-sm">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-slate-900 tracking-tight break-words">{row.targeting}</span>
+                          
+                          {row.searchTerms && row.searchTerms.length > 0 && (
+                            <button
+                              onClick={() => toggleRowExpanded(row.id)}
+                              className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 hover:text-emerald-950 text-[10px] font-bold rounded-md transition cursor-pointer select-none border border-emerald-300/30 shadow-3xs"
+                            >
+                              <span>{row.searchTerms.length} query slices</span>
+                              {expandedRowIds.has(row.id) ? (
+                                <ChevronUp className="w-2.5 h-2.5" />
+                              ) : (
+                                <ChevronDown className="w-2.5 h-2.5" />
+                              )}
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </td>
-
-                    {/* Metrics */}
-                    <td className="p-4 text-right font-medium">{row.clicks.toLocaleString()}</td>
-                    <td className="p-4 text-right font-medium text-slate-500">{(row.ctr * 100).toFixed(2)}%</td>
-                    <td className="p-4 text-right font-semibold">${row.spend.toFixed(2)}</td>
-                    <td className="p-4 text-right font-semibold text-slate-900">${row.sales.toFixed(2)}</td>
-                    
-                    {/* ACOS details */}
-                    <td className="p-4 text-right font-bold">
-                      {row.sales > 0 ? (
-                        <span className={row.acos > 0.40 ? "text-reduce-text" : (row.acos < 0.20 ? "text-scale-text" : "text-slate-800")}>
-                          {(row.acos * 100).toFixed(0)}%
-                        </span>
-                      ) : (
-                        <span className="text-slate-300">-</span>
-                      )}
-                    </td>
-
-                    {/* Original bid estimate */}
-                    <td className="p-4 text-right whitespace-nowrap">
-                      <span className="font-mono text-slate-500">${curBid.toFixed(2)}</span>
-                    </td>
-
-                    {/* Suggested Bid Input column */}
-                    <td className="p-4 text-right bg-brand/[0.02] whitespace-nowrap border-l border-slate-100">
-                      <div className="flex items-center justify-end gap-1 text-right">
-                        {isOverridden && (
-                          <button
-                            onClick={() => onResetOverride(row.id)}
-                            className="p-1 hover:bg-slate-100 rounded-full text-amber-500 hover:text-amber-600 cursor-pointer"
-                            title="Reset to formula configuration"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                          </button>
+                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium bg-slate-100 text-slate-500 px-1.5 py-0.25 rounded">{row.matchType || "Broad"}</span>
+                          <span className="truncate">{row.campaign}</span>
+                          <span>•</span>
+                          <span className="truncate">{row.adGroup}</span>
+                        </div>
+                        
+                        {/* Reason text underneath */}
+                        {rec && (
+                          <div className="text-[10px] text-slate-500 italic mt-1 bg-slate-50 p-1.5 rounded border border-slate-100 leading-normal">
+                            {rec.reason}
+                          </div>
                         )}
-                        <div className="relative inline-block w-20">
-                          <span className="absolute left-1.5 top-1.5 text-brand font-bold font-mono">$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={sugBid === 0 ? "" : Number(sugBid).toFixed(2)}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value);
-                              if (!isNaN(val)) onBidOverride(row.id, val);
-                            }}
-                            className={`w-full pl-4.5 pr-1.5 py-1 text-xs text-right font-mono font-bold rounded-md bg-white border border-slate-200 outline-none focus:ring-1 focus:ring-brand ${
-                              isOverridden 
-                                ? "border-amber-400 focus:ring-amber-400 text-amber-700 bg-amber-50/10" 
-                                : "text-brand border-brand/20 focus:border-brand"
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Recommendation action badge */}
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider ${badgeClass}`}>
-                        {rec ? rec.action : "HOLD"}
-                      </span>
-                    </td>
-                  </tr>
+                      {/* Metrics */}
+                      <td className="p-4 text-right font-medium">{row.clicks.toLocaleString()}</td>
+                      <td className="p-4 text-right font-medium text-slate-500">{(row.ctr * 100).toFixed(2)}%</td>
+                      <td className="p-4 text-right font-semibold">${row.spend.toFixed(2)}</td>
+                      <td className="p-4 text-right font-semibold text-slate-900">${row.sales.toFixed(2)}</td>
+                      
+                      {/* ACOS details */}
+                      <td className="p-4 text-right font-bold">
+                        {row.sales > 0 ? (
+                          <span className={row.acos > 0.40 ? "text-reduce-text" : (row.acos < 0.20 ? "text-scale-text" : "text-slate-800")}>
+                            {(row.acos * 100).toFixed(0)}%
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )}
+                      </td>
+
+                      {/* Original bid estimate */}
+                      <td className="p-4 text-right whitespace-nowrap">
+                        <span className="font-mono text-slate-500">${curBid.toFixed(2)}</span>
+                      </td>
+
+                      {/* Suggested Bid Input column */}
+                      <td className="p-4 text-right bg-brand/[0.02] whitespace-nowrap border-l border-slate-100">
+                        <div className="flex items-center justify-end gap-1 text-right">
+                          {isOverridden && (
+                            <button
+                              onClick={() => onResetOverride(row.id)}
+                              className="p-1 hover:bg-slate-100 rounded-full text-amber-500 hover:text-amber-600 cursor-pointer"
+                              title="Reset to formula configuration"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </button>
+                          )}
+                          <div className="relative inline-block w-20">
+                            <span className="absolute left-1.5 top-1.5 text-brand font-bold font-mono">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={sugBid === 0 ? "" : Number(sugBid).toFixed(2)}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) onBidOverride(row.id, val);
+                              }}
+                              className={`w-full pl-4.5 pr-1.5 py-1 text-xs text-right font-mono font-bold rounded-md bg-white border border-slate-200 outline-none focus:ring-1 focus:ring-brand ${
+                                isOverridden 
+                                  ? "border-amber-400 focus:ring-amber-400 text-amber-700 bg-amber-50/10" 
+                                  : "text-brand border-brand/20 focus:border-brand"
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Recommendation action badge */}
+                      <td className="p-4 text-center whitespace-nowrap">
+                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider ${badgeClass}`}>
+                          {rec ? rec.action : "HOLD"}
+                        </span>
+                      </td>
+                    </tr>
+
+                    {/* Subtable details for query slices */}
+                    {expandedRowIds.has(row.id) && row.searchTerms && row.searchTerms.length > 0 && (
+                      <tr className="bg-slate-50/85">
+                        <td className="p-0 border-b border-slate-200" colSpan={10}>
+                          <div className="px-6 py-4 border-l-4 border-emerald-500 bg-emerald-50/10 whitespace-normal">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkle className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                              <h4 className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                Customer Search Queries Rollup Breakdown ({row.searchTerms.length} slices)
+                              </h4>
+                            </div>
+                            <div className="border border-slate-200/60 rounded-lg overflow-hidden bg-white shadow-3xs max-w-4xl">
+                              <table className="w-full text-left border-collapse text-[11px] font-sans">
+                                <thead>
+                                  <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200 text-[10px] uppercase tracking-wider">
+                                    <th className="p-2.5 pl-4">Raw Customer Search Query</th>
+                                    <th className="p-2.5 text-right w-24">Impressions</th>
+                                    <th className="p-2.5 text-right w-20">Clicks</th>
+                                    <th className="p-2.5 text-right text-slate-705 w-24">Spend</th>
+                                    <th className="p-2.5 text-right text-slate-905 w-24">Sales</th>
+                                    <th className="p-2.5 text-right w-20">ACOS</th>
+                                    <th className="p-2.5 text-right pr-4 w-20">Orders</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                                  {row.searchTerms.map((term, tIdx) => (
+                                    <tr key={tIdx} className="hover:bg-slate-50/70 transition-colors">
+                                      <td className="p-2.5 pl-4 font-mono text-slate-900 select-all font-semibold break-all">
+                                        {term.term}
+                                      </td>
+                                      <td className="p-2.5 text-right font-mono text-slate-500">{term.impressions}</td>
+                                      <td className="p-2.5 text-right font-mono">{term.clicks}</td>
+                                      <td className="p-2.5 text-right font-mono text-slate-700">${term.spend.toFixed(2)}</td>
+                                      <td className="p-2.5 text-right font-mono text-slate-950 font-bold">${term.sales.toFixed(2)}</td>
+                                      <td className="p-2.5 text-right font-mono font-bold">
+                                        {term.sales > 0 ? (
+                                          <span className={term.acos > 0.40 ? "text-rose-600" : (term.acos < 0.20 ? "text-emerald-600" : "text-slate-800")}>
+                                            {(term.acos * 100).toFixed(0)}%
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-300 font-normal">-</span>
+                                        )}
+                                      </td>
+                                      <td className="p-2.5 text-right pr-4 font-mono text-slate-900 font-bold">{term.orders}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-medium mt-2 leading-relaxed">
+                              * Amazon logs search terms report slices over time. WesBid aggregate-summed these and calculated real ACOS dynamically so you don't over-bid on high-volume bleeding user searches.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })
             )}

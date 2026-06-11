@@ -10,7 +10,7 @@ import { parseAmazonReport } from "../lib/parser";
 import { AmazonPpcRow } from "../types";
 
 interface UploadDropzoneProps {
-  onDataLoaded: (rows: AmazonPpcRow[], filename: string) => void;
+  onDataLoaded: (rows: AmazonPpcRow[], filename: string, rawCount?: number) => void;
 }
 
 export default function UploadDropzone({ onDataLoaded }: UploadDropzoneProps) {
@@ -38,7 +38,10 @@ export default function UploadDropzone({ onDataLoaded }: UploadDropzoneProps) {
         return;
       }
       setErrorMsg(null);
-      onDataLoaded(parsed, filename);
+      // Count non-empty text rows (ignoring header) as primary raw feed density
+      const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+      const rawCount = lines.length > 1 ? lines.length - 1 : parsed.length;
+      onDataLoaded(parsed, filename, rawCount);
     } catch (err: any) {
       setErrorMsg(`Parsing Error: ${err.message || "Invalid file format structure."}`);
     }
