@@ -43,11 +43,19 @@ While legacy tools guess, WesBid parses underlying customer search queries insid
 - **⚠️ Weak Waste Signal** (3–5 clicks, 0 orders): Flags keyword as a weak signal, advising manual monitoring.
 - **🚨 Hard Negative Candidate** (6+ clicks, 0 orders): Flags critical leakage. Recommends adding as Negative Exact in Seller Central to instantly cut bleeders.
 
-### 4. Analytics Delta & Visualizers
+### 4. Market Intelligence & Niche Explorer v1
+Bypasses the fragile "Keyword-to-Single-ASIN" PPC trap. Supports the sophisticated Amazon-native targeting abstraction:
+$$\text{Shopper Intent} \longrightarrow \text{Niche Grouping} \longrightarrow \text{ASIN Competitor Clusters} \longrightarrow \text{Targeting Set Injection}$$
+
+- **Query Token Clustering Engine**: Scans underlying customer search queries to dynamically calculate word token recurrences, agruping similar behaviors into localized macro-niche folders.
+- **Live Amazon Validation Integration**: Directly provides high-value search shortcuts so operators can trigger direct validation searches on Amazon with a single click, identifying top competitor vulnerabilities (poor ratings, premium pricing deltas, low-quality setups).
+- **Target Cluster Sandbox Ingest**: Formulates structured campaigns featuring custom strategic multipliers (Conquest / Defense / Harvest models) based on manually verified competitor listing ASIN inputs.
+
+### 5. Analytics Delta & Visualizers
 - **Simulated Spend Elasticity**: Real-time estimates of incoming budget shifts, variance percentages, and average recommendations.
 - **Area-Area Distribution Charts**: Built with standard fully responsive Recharts displaying current vs. recommended bid distribution to easily spot anomalies.
 
-### 4. WesBid Co-pilot AI Memo
+### 6. WesBid Co-pilot AI Memo
 - Powered by a safe full-stack server proxying **Gemini API** requests securely.
 - Diagnoses structural inefficiencies, audits top star-performers, and structures localized actionable checklists to coordinate manual imports.
 
