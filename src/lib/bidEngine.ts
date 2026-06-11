@@ -137,7 +137,7 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
   // Layer 2: Bleeder Penalty (Spent money with 0 orders)
   if (row.clicks >= bleederClicks && row.orders === 0) {
     const penaltyRatio = 1 - (config.bleederReduction / 100);
-    let targetBid = cpc * penaltyRatio;
+    let targetBid = currentBid * penaltyRatio;
     
     // clamp it
     targetBid = Math.max(config.minBid, Math.min(config.maxBid, targetBid));
@@ -166,9 +166,9 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
     const targetAcosMultiplier = targetAcos / 100;
     const currentAcosRatio = targetAcosMultiplier / row.acos;
 
-    // Apply Dampening: suggestedBid = cpc + (dampened_change)
-    const rawTargetBid = cpc * currentAcosRatio;
-    const difference = rawTargetBid - cpc;
+    // Apply Dampening: suggestedBid = currentBid + (dampened_change)
+    const rawTargetBid = currentBid * currentAcosRatio;
+    const difference = rawTargetBid - currentBid;
 
     // Dynamic Level 3 memory dampening (state-driven weighting)
     let adaptiveMultiplier = 1.0;
@@ -193,7 +193,7 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
     }
 
     const finalDampening = dampening * adaptiveMultiplier;
-    const dampenedBid = cpc + (difference * finalDampening);
+    const dampenedBid = currentBid + (difference * finalDampening);
 
     let suggestedBid = dampenedBid;
 
