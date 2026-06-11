@@ -16,7 +16,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       maxBid: 2.00,
       dampening: 0.50,
       bleederClicks: 12,
-      bleederReduction: 35
+      bleederReduction: 35,
+      enableV3: true,
+      confidenceScale: 90,
+      adaptiveDecay: 10
     }
   },
   BALANCED: {
@@ -29,7 +32,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       maxBid: 3.50,
       dampening: 0.70,
       bleederClicks: 15,
-      bleederReduction: 25
+      bleederReduction: 25,
+      enableV3: true,
+      confidenceScale: 75,
+      adaptiveDecay: 15
     }
   },
   AGGRESSIVE: {
@@ -42,7 +48,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       maxBid: 6.00,
       dampening: 0.90,
       bleederClicks: 20,
-      bleederReduction: 15
+      bleederReduction: 15,
+      enableV3: true,
+      confidenceScale: 60,
+      adaptiveDecay: 25
     }
   },
   HARVEST: {
@@ -55,7 +64,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       maxBid: 2.50,
       dampening: 0.60,
       bleederClicks: 10,
-      bleederReduction: 40
+      bleederReduction: 40,
+      enableV3: true,
+      confidenceScale: 85,
+      adaptiveDecay: 30
     }
   }
 };
@@ -67,8 +79,42 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
   const currentBid = row.currentBid || row.cpc || 1.00;
   const cpc = row.cpc > 0 ? row.cpc : currentBid;
 
+  // Establish baseline meta parameters based on Targeting Intent classification (Amazon Modern PPC Meta Strategy)
+  let targetAcos = config.targetAcos;
+  let minClicks = config.minClicks;
+  let bleederClicks = config.bleederClicks;
+  let dampening = config.dampening;
+  let strategyModifierReason = "";
+
+  const matchTypeUpper = (row.matchType || "").toUpperCase();
+  const targetingLower = (row.targeting || "").toLowerCase();
+  
+  const isExact = matchTypeUpper === "EXACT" || targetingLower.includes("[exact]") || targetingLower.includes("exact");
+  const isBroadOrPhrase = matchTypeUpper === "BROAD" || matchTypeUpper === "PHRASE" || targetingLower.includes("broad") || targetingLower.includes("phrase");
+  const isAutoTarget = ["loose-match", "close-match", "substitutes", "complements"].includes(targetingLower) || row.matchType === "-";
+  const isAsinTarget = targetingLower.startsWith("asin=") || targetingLower.startsWith("asin-expanded=") || row.adGroup.toLowerCase().includes("asin") || row.campaign.toLowerCase().includes("asin");
+
+  if (isExact) {
+    // Exact match targets have high conversion certainty. Elevate Target ACOS (scale focus), lower learning click boundaries, and give more safety slack.
+    targetAcos = config.targetAcos * 1.10; 
+    minClicks = Math.max(5, Math.round(config.minClicks * 0.70)); 
+    bleederClicks = Math.round(config.bleederClicks * 1.30); 
+    dampening = Math.min(1.0, config.dampening * 1.15); 
+    strategyModifierReason = "(Meta: EXACT Match Priority scaling applied). ";
+  } else if (isBroadOrPhrase || isAutoTarget) {
+    // Broad/Phrase and Auto matches easily eat up excess click waste. Apply discounted target ACOS and accelerate click budget protection thresholds.
+    targetAcos = config.targetAcos * 0.85; 
+    minClicks = Math.round(config.minClicks * 1.25); 
+    bleederClicks = Math.max(5, Math.round(config.bleederClicks * 0.80)); 
+    strategyModifierReason = "(Meta: Broad/Auto budget waste prevention applied). ";
+  } else if (isAsinTarget) {
+    // ASIN detail page placements (PAT). Higher impressions, slightly lower CTR on pages. Give slightly shorter learning phase.
+    minClicks = Math.max(8, Math.round(config.minClicks * 0.90)); 
+    strategyModifierReason = "(Meta: ASIN page placement parameters applied). ";
+  }
+
   // Layer 1: Data Safety (Learning Phase protection)
-  if (row.clicks < config.minClicks && row.orders === 0) {
+  if (row.clicks < minClicks && row.orders === 0) {
     return {
       rowId: row.id,
       targeting: row.targeting,
@@ -82,14 +128,14 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
       currentBid,
       suggestedBid: Number(currentBid.toFixed(2)),
       action: "HOLD",
-      reason: `Insufficent data: ${row.clicks}/${config.minClicks} clicks (Learning phase protection).`,
+      reason: `${strategyModifierReason}Insufficent data: ${row.clicks}/${minClicks} clicks (Learning phase protection).`,
       confidence: "Low",
       isOverridden: false
     };
   }
 
   // Layer 2: Bleeder Penalty (Spent money with 0 orders)
-  if (row.clicks >= config.bleederClicks && row.orders === 0) {
+  if (row.clicks >= bleederClicks && row.orders === 0) {
     const penaltyRatio = 1 - (config.bleederReduction / 100);
     let targetBid = cpc * penaltyRatio;
     
@@ -109,40 +155,89 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
       currentBid,
       suggestedBid: Number(targetBid.toFixed(2)),
       action: "REDUCE",
-      reason: `Bleeder flagged: ${row.clicks} clicks with $${row.spend.toFixed(2)} spend and 0 sales. Reducing bid by ${config.bleederReduction}%.`,
-      confidence: row.clicks >= config.bleederClicks * 1.5 ? "High" : "Medium",
+      reason: `${strategyModifierReason}Bleeder flagged: ${row.clicks} clicks with $${row.spend.toFixed(2)} spend and 0 sales. Reducing bid by ${config.bleederReduction}%.`,
+      confidence: row.clicks >= bleederClicks * 1.5 ? "High" : "Medium",
       isOverridden: false
     };
   }
 
   // Layer 3: ACOS-Based Formula Optimization
   if (row.sales > 0 && row.acos > 0) {
-    const targetAcosMultiplier = config.targetAcos / 100;
+    const targetAcosMultiplier = targetAcos / 100;
     const currentAcosRatio = targetAcosMultiplier / row.acos;
 
     // Apply Dampening: suggestedBid = cpc + (dampened_change)
     const rawTargetBid = cpc * currentAcosRatio;
     const difference = rawTargetBid - cpc;
-    const dampenedBid = cpc + (difference * config.dampening);
+
+    // Dynamic Level 3 memory dampening (state-driven weighting)
+    let adaptiveMultiplier = 1.0;
+    let adaptiveNote = "";
+    if (config.enableV3) {
+      if (row.orders === 1) {
+        adaptiveMultiplier = 0.50; // single conversion is highly volatile, scale back adjustment speed by 50%
+        adaptiveNote = "(V3: 50% speed applied due to single-order state volatility). ";
+      } else if (row.orders <= 3) {
+        adaptiveMultiplier = 0.80; // moderate confidence
+        adaptiveNote = "(V3: 80% speed applied for low-volume conversion state). ";
+      } else {
+        adaptiveMultiplier = 1.00; // stable high confidence
+        adaptiveNote = "(V3: 100% full learning speed applied to stable volume). ";
+      }
+      
+      // Decay Weight Proxy: if our current ACOS is quite high, we drag bid slightly down to counter performance decay
+      if (row.acos > targetAcosMultiplier) {
+        const decayScale = (config.adaptiveDecay !== undefined ? config.adaptiveDecay : 15) / 100;
+        adaptiveMultiplier *= (1 - decayScale * 0.5); // decay dampens bid increases or slows down high ACOS bid hikes
+      }
+    }
+
+    const finalDampening = dampening * adaptiveMultiplier;
+    const dampenedBid = cpc + (difference * finalDampening);
+
+    let suggestedBid = dampenedBid;
+
+    // Conquering placements in the top listings is the primary meta of modern Amazon PPC.
+    // If the keyword runs in high profit margin (ACOS is under 90% of target ACOS) and our Search Share is low (< 25%), we issue a Top-of-Search placement multiplier.
+    // UPGRADED GATE: "Conversion stability > Traffic expansion" checks
+    let isTosBoosted = false;
+    let tosNotes = "";
+    if (row.impressionShare !== undefined && row.impressionShare > 0 && row.impressionShare < 25 && row.acos < (targetAcos / 100) * 0.90) {
+      const passesSafetyGate = row.clicks >= 5 && row.orders >= 1;
+      if (passesSafetyGate) {
+        suggestedBid = suggestedBid * 1.15; // Secures a 15% bid boost to scale ranking
+        isTosBoosted = true;
+      } else {
+        tosNotes = ` [TOS_GATE_HOLD]: High-margin candidate detected (Aacos ${(row.acos * 100).toFixed(0)}%), but 15% Top-of-Screen Placement Boost held back until conversion reaches 5 clicks and 1 order (current: ${row.clicks} clicks, ${row.orders} orders) for safety.`;
+      }
+    }
 
     // Clamp to floor and ceiling
-    let suggestedBid = Math.max(config.minBid, Math.min(config.maxBid, dampenedBid));
+    suggestedBid = Math.max(config.minBid, Math.min(config.maxBid, suggestedBid));
 
     const currentAcosPercent = Math.round(row.acos * 100);
-    const ratioValue = config.targetAcos / currentAcosPercent;
+    const ratioValue = targetAcos / currentAcosPercent;
 
     let action: "SCALE" | "REDUCE" | "HOLD" = "HOLD";
     let reason = "";
     
     if (ratioValue > 1.05) {
       action = "SCALE";
-      reason = `Highly profitable ACOS (${currentAcosPercent}% vs target ${config.targetAcos}%). Scaling bid upward by ${(config.dampening * 100).toFixed(0)}% of potential headroom.`;
+      reason = `${strategyModifierReason}${adaptiveNote}Highly profitable ACOS (${currentAcosPercent}% vs target ${Math.round(targetAcos)}%). Scaling bid upward by ${(finalDampening * 100).toFixed(0)}% of headroom.`;
     } else if (ratioValue < 0.95) {
       action = "REDUCE";
-      reason = `Inefficient ACOS (${currentAcosPercent}% vs target ${config.targetAcos}%). Trimming bid lower towards target CPC.`;
+      reason = `${strategyModifierReason}${adaptiveNote}Inefficient ACOS (${currentAcosPercent}% vs target ${Math.round(targetAcos)}%). Trimming bid lower towards target CPC.`;
     } else {
       action = "HOLD";
-      reason = `ACOS inside optimized target envelope (${currentAcosPercent}% vs target ${config.targetAcos}%). Maintaining bid stability.`;
+      reason = `${strategyModifierReason}${adaptiveNote}ACOS inside optimized target envelope (${currentAcosPercent}% vs target ${Math.round(targetAcos)}%). Maintaining bid stability.`;
+    }
+
+    if (isTosBoosted && row.impressionShare !== undefined) {
+      reason += ` [PLA_BOOST]: Added 15% Top-of-Search bid boost since search share is critically low (${row.impressionShare.toFixed(1)}%) but ACOS is efficient.`;
+    }
+
+    if (tosNotes) {
+      reason += tosNotes;
     }
 
     // Confidence index
@@ -181,7 +276,7 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
     currentBid,
     suggestedBid: Number(currentBid.toFixed(2)),
     action: "HOLD",
-    reason: `Low activity keyword. Holding placement to monitor performance.`,
+    reason: `${strategyModifierReason}Low activity keyword. Holding placement to monitor performance.`,
     confidence: "Low",
     isOverridden: false
   };

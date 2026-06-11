@@ -28,6 +28,7 @@ interface BidTableProps {
   onResetOverride: (rowId: string) => void;
   onBulkOverride: (rowIds: string[], multiplier: number) => void;
   onBulkSetAction: (rowIds: string[], action: "SCALE" | "REDUCE" | "HOLD") => void;
+  onCurrentBidChange: (rowId: string, newBid: number) => void;
 }
 
 type SortField = "targeting" | "clicks" | "spend" | "sales" | "acos" | "currentBid" | "suggestedBid" | "action" | "ctr";
@@ -38,7 +39,8 @@ export default function BidTable({
   onBidOverride,
   onResetOverride,
   onBulkOverride,
-  onBulkSetAction
+  onBulkSetAction,
+  onCurrentBidChange
 }: BidTableProps) {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -473,6 +475,19 @@ export default function BidTable({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-semibold text-slate-900 tracking-tight break-words">{row.targeting}</span>
                           
+                          {row.impressionShare !== undefined && (
+                            <span 
+                              className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-black rounded-md border tracking-wider uppercase select-none ${
+                                row.impressionShare < 25 
+                                  ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200/60"
+                              }`}
+                              title="Top of Search Impression Share"
+                            >
+                              TOS: {row.impressionShare.toFixed(1)}%
+                            </span>
+                          )}
+
                           {row.searchTerms && row.searchTerms.length > 0 && (
                             <button
                               onClick={() => toggleRowExpanded(row.id)}
@@ -519,9 +534,25 @@ export default function BidTable({
                         )}
                       </td>
 
-                      {/* Original bid estimate */}
+                      {/* Original bid estimate / Custom baseline input */}
                       <td className="p-4 text-right whitespace-nowrap">
-                        <span className="font-mono text-slate-500">${curBid.toFixed(2)}</span>
+                        <div className="flex items-center justify-end">
+                          <div className="relative inline-block w-20 text-right">
+                            <span className="absolute left-1.5 top-1.5 text-slate-400 font-medium font-mono">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={curBid === 0 ? "" : Number(curBid).toFixed(2)}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) onCurrentBidChange(row.id, val);
+                              }}
+                              className="w-full pl-4.5 pr-1.5 py-1 text-xs text-right font-mono font-semibold rounded-md bg-slate-50 border border-slate-200 outline-none focus:ring-1 focus:ring-slate-400 text-slate-700 hover:bg-slate-100/50 focus:bg-white transition-all shadow-3xs"
+                              title="Override current baseline bid if it does not match what's live in Amazon Campaign Manager"
+                            />
+                          </div>
+                        </div>
                       </td>
 
                       {/* Suggested Bid Input column */}
@@ -593,7 +624,33 @@ export default function BidTable({
                                   {row.searchTerms.map((term, tIdx) => (
                                     <tr key={tIdx} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="p-2.5 pl-4 font-mono text-slate-900 select-all font-semibold break-all">
-                                        {term.term}
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span>{term.term}</span>
+                                          {term.clicks > 0 && term.clicks <= 2 && term.orders === 0 && (
+                                            <span 
+                                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-50 text-slate-400 border border-slate-200/60 text-[8px] font-bold rounded-md select-none cursor-help"
+                                              title="Observation phase active. Clicks are low; insufficient evidence to suspect waste."
+                                            >
+                                              🔍 Observing
+                                            </span>
+                                          )}
+                                          {term.clicks >= 3 && term.clicks <= 5 && term.orders === 0 && (
+                                            <span 
+                                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50/80 text-amber-700 border border-amber-200/65 text-[8px] uppercase font-extrabold rounded-md cursor-help"
+                                              title="Weak Waste Signal: This customer search query is eating clicks without a conversion. We recommend monitoring closely before implementing a full exclusion."
+                                            >
+                                              ⚠️ Weak Waste Signal (Monitor)
+                                            </span>
+                                          )}
+                                          {term.clicks >= 6 && term.orders === 0 && (
+                                            <span 
+                                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/60 text-[8px] uppercase font-extrabold rounded-md cursor-help animate-pulse"
+                                              title="Hard Negative Candidate: Critical budget leakage. Significant clicks with absolutely zero sales. Highly recommended to add as a negative exact keyword in Seller Central."
+                                            >
+                                              🚨 Hard Negative Candidate (Action!)
+                                            </span>
+                                          )}
+                                        </div>
                                       </td>
                                       <td className="p-2.5 text-right font-mono text-slate-500">{term.impressions}</td>
                                       <td className="p-2.5 text-right font-mono">{term.clicks}</td>

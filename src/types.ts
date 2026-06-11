@@ -19,6 +19,7 @@ export interface AmazonPpcRow {
   acos: number; // calculated as spend / sales, or parsed from report
   cvr: number; // orders / clicks
   currentBid?: number; // optionally parsed from report
+  impressionShare?: number; // Top-of-search Impression Share percent
   searchTerms?: {
     term: string;
     impressions: number;
@@ -56,6 +57,9 @@ export interface OptimizerConfig {
   dampening: number;       // bid dampening factor (0 = hold, 1 = direct target ratio adjustment)
   bleederClicks: number;   // clicks with 0 sales before applying bleeder reduction
   bleederReduction: number; // reduction multiplier or percent for zero-sales bleeders (e.g. 30%)
+  enableV3?: boolean;       // Enable adaptive memory / learning-phase controls
+  confidenceScale?: number; // Adaptive coefficient scaling percent (0-100)
+  adaptiveDecay?: number;   // Dynamic decay scale percent (0-100)
 }
 
 export type StrategyPreset = "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE" | "HARVEST";

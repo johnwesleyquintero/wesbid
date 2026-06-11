@@ -132,6 +132,18 @@ export default function App() {
     }));
   };
 
+  const handleCurrentBidChange = (rowId: string, newBid: number) => {
+    setPpcRows(prev => prev.map(row => {
+      if (row.id === rowId) {
+        return {
+          ...row,
+          currentBid: Math.max(0.01, newBid)
+        };
+      }
+      return row;
+    }));
+  };
+
   const handleResetOverride = (rowId: string) => {
     setOverrides(prev => {
       const next = { ...prev };
@@ -448,6 +460,81 @@ export default function App() {
                     />
                   </div>
                 </div>
+
+                {/* 6. WESBID V3 ADAPTIVE ENGINE CONTROL */}
+                <div className="space-y-3 pt-4 border-t border-slate-200 mt-2 bg-slate-50/70 p-3 rounded-lg border">
+                  <div className="flex items-center justify-between animate-fade-in">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                      <span className="text-[10px] font-black text-indigo-950 uppercase tracking-wider">WesBid v3 Engine</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={config.enableV3 ?? true} 
+                        onChange={(e) => setConfig(prev => ({ ...prev, enableV3: e.target.checked }))}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  
+                  <p className="text-[9px] text-slate-500 leading-normal">
+                    Upgrades static rules into state-driven confidence modeling: adapts adjustments according to individual query stability signals.
+                  </p>
+
+                  {(config.enableV3 ?? true) ? (
+                    <div className="space-y-3 pt-2 border-t border-slate-100">
+                      {/* V3 Confidence Scale coefficient */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] text-slate-700 font-bold">
+                          <span>Confidence Scaling Coefficient</span>
+                          <span className="font-mono text-indigo-700 font-black">{(config.confidenceScale ?? 75)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          step="5"
+                          value={config.confidenceScale ?? 75}
+                          onChange={(e) => setConfig(prev => ({ ...prev, confidenceScale: Number(e.target.value) }))}
+                          className="w-full accent-indigo-600 cursor-ew-resize h-1 bg-slate-200 rounded-lg appearance-none"
+                        />
+                        <p className="text-[8px] text-slate-400 leading-normal">
+                          Dampens change adjustments heavily on unstable keywords (e.g. 1 order) to protect budgets.
+                        </p>
+                      </div>
+
+                      {/* V3 Dynamic Decay Coefficient */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] text-slate-700 font-bold">
+                          <span>ACOS Performance Decay</span>
+                          <span className="font-mono text-indigo-700 font-black">{(config.adaptiveDecay ?? 15)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="50"
+                          step="5"
+                          value={config.adaptiveDecay ?? 15}
+                          onChange={(e) => setConfig(prev => ({ ...prev, adaptiveDecay: Number(e.target.value) }))}
+                          className="w-full accent-indigo-600 cursor-ew-resize h-1 bg-slate-200 rounded-lg appearance-none"
+                        />
+                        <p className="text-[8px] text-slate-400 leading-normal">
+                          Applies subtle safety gravity to scale events on keywords indicating performance degradation.
+                        </p>
+                      </div>
+                      
+                      <div className="bg-indigo-50 border border-indigo-100 rounded p-2 text-[8px] text-indigo-800 leading-normal font-semibold">
+                        🛡️ Active Shield: Top-of-Search placement boost strictly gated (minimum 5 clicks + 1 order required) to avoid phantom ROAS scaling.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[8px] text-slate-400 leading-normal italic bg-slate-100 p-2 rounded">
+                      Legacy 2022 Static Rules active. Multi-state learning layers bypassed.
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
           )}
@@ -574,6 +661,7 @@ export default function App() {
                     onResetOverride={handleResetOverride}
                     onBulkOverride={handleBulkOverride}
                     onBulkSetAction={handleBulkSetAction}
+                    onCurrentBidChange={handleCurrentBidChange}
                   />
                 )}
 

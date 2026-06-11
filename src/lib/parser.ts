@@ -84,6 +84,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
   const idxOrders = getIndex(["Orders", "Total Orders", "7 Day Total Orders", "7-day total orders", "total orders", "purchases", "order count", "7 day total orders (#)"]);
   const idxCpc = getIndex(["CPC", "Cost Per Click", "Cost per click (CPC)", "cpc"]);
   const idxBid = getIndex(["Bid", "Current Bid", "Max Bid", "Keyword Bid", "bid", "ad group bid"]);
+  const idxImpressionShare = getIndex(["Top-of-search Impression Share", "Top of Search Impression Share", "Impression Share", "impression share", "topofsearchimpressionshare", "top of search impression share"]);
 
   const uniqueRowsMap = new Map<string, {
     campaign: string;
@@ -97,6 +98,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
     orders: number;
     bids: number[];
     cpcs: number[];
+    impressionShares: number[];
     searchTerms: Map<string, {
       term: string;
       impressions: number;
@@ -135,6 +137,13 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
     const sales = idxSales !== -1 ? parseNumeric(cells[idxSales]) : 0;
     const orders = idxOrders !== -1 ? parseNumeric(cells[idxOrders]) : 0;
     const cpc = idxCpc !== -1 ? parseNumeric(cells[idxCpc]) : (clicks > 0 ? spend / clicks : 0);
+    
+    // Parse Top-of-Search Impression share if present
+    let impressionShare: number | undefined = undefined;
+    if (idxImpressionShare !== -1 && cells[idxImpressionShare]) {
+      const isVal = parseNumeric(cells[idxImpressionShare]);
+      if (isVal > 0) impressionShare = isVal;
+    }
     
     // Optional parsed bid: if not present, we will estimate or use a default bid of $1.00
     let currentBid: number | undefined = undefined;
@@ -180,6 +189,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
         orders,
         bids: currentBid !== undefined ? [currentBid] : [],
         cpcs: cpc > 0 ? [cpc] : [],
+        impressionShares: impressionShare !== undefined ? [impressionShare] : [],
         searchTerms: termsMap
       });
     } else {
@@ -193,6 +203,9 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       }
       if (cpc > 0) {
         existing.cpcs.push(cpc);
+      }
+      if (impressionShare !== undefined) {
+        existing.impressionShares.push(impressionShare);
       }
 
       if (customerSearchTerm) {
@@ -249,6 +262,12 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       bid = data.bids[data.bids.length - 1];
     }
 
+    // Average Top-of-Search Impression share
+    let resolvedImpShare: number | undefined = undefined;
+    if (data.impressionShares && data.impressionShares.length > 0) {
+      resolvedImpShare = data.impressionShares.reduce((s, v) => s + v, 0) / data.impressionShares.length;
+    }
+
     // Convert search terms map to array, sorted descending by clicks then spend
     const searchTermsArr = data.searchTerms.size > 0
       ? Array.from(data.searchTerms.values()).map(t => ({
@@ -278,6 +297,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       acos,
       cvr,
       currentBid: bid,
+      impressionShare: resolvedImpShare,
       searchTerms: searchTermsArr
     });
   });
