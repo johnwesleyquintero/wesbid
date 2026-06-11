@@ -240,12 +240,12 @@ export default function App() {
       {/* Main layout routing switch */}
       {ppcRows.length === 0 ? (
         /* State A: EMPTY DATASET (Uploader Workspace) */
-        <main className="max-w-7xl mx-auto px-6 py-12">
+        <main className="max-w-4xl mx-auto px-6 py-12">
           <UploadDropzone onDataLoaded={handleDataLoaded} />
         </main>
       ) : (
         /* State B: ACTIVE SIMULATION WORKSPACE */
-        <main className="max-w-7xl mx-auto px-6 py-8">
+        <main className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             
