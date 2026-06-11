@@ -305,7 +305,7 @@ export default function BidTable({
 
       {/* Main Responsive Grid Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse" id="ppc-data-table">
+        <table className="w-full min-w-[1100px] lg:min-w-full text-left border-collapse" id="ppc-data-table">
           <thead>
             <tr className="bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <th className="p-4 w-12 text-center">
