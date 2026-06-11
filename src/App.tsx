@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   RotateCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Compass
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation, OptimizerConfig, StrategyPreset, StrategyDefinition } from "./types";
 import { STRATEGY_PRESETS, calculateRowBid, calculateScenarioImpact } from "./lib/bidEngine";
@@ -31,6 +32,7 @@ import UploadDropzone from "./components/UploadDropzone";
 import BidTable from "./components/BidTable";
 import SummaryPanel from "./components/SummaryPanel";
 import AssistantInsight from "./components/AssistantInsight";
+import NicheDiscovery from "./components/NicheDiscovery";
 
 export default function App() {
   // PPC Data States
@@ -56,7 +58,7 @@ export default function App() {
   const [overrides, setOverrides] = useState<Record<string, number>>({});
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT">("TABLE");
+  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES">("TABLE");
 
   // Sidebar open/collapse state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -598,45 +600,60 @@ export default function App() {
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   )}
-                  
-                  <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg w-full sm:w-auto overflow-x-auto min-w-0">
-                    <button
-                      onClick={() => setActiveTab("TABLE")}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition select-none cursor-pointer whitespace-nowrap ${
-                        activeTab === "TABLE" 
-                          ? "bg-white text-slate-900 shadow-sm font-bold" 
-                          : "text-slate-600 hover:bg-slate-200/50"
-                      }`}
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-                      Bidding Cockpit
-                    </button>
+                               <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg w-full sm:w-auto overflow-x-auto min-w-0">
+                      <button
+                        onClick={() => setActiveTab("TABLE")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap ${
+                          activeTab === "TABLE" 
+                            ? "bg-white text-slate-900 shadow-xs" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+                        Bidding Cockpit
+                      </button>
 
-                    <button
-                      onClick={() => setActiveTab("SUMMARY")}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition select-none cursor-pointer whitespace-nowrap ${
-                        activeTab === "SUMMARY" 
-                          ? "bg-white text-slate-900 shadow-sm font-bold" 
-                          : "text-slate-600 hover:bg-slate-200/50"
-                      }`}
-                    >
-                      <LayoutDashboard className="w-3.5 h-3.5 text-slate-400" />
-                      Analytics Delta
-                    </button>
+                      <button
+                        onClick={() => setActiveTab("SUMMARY")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap ${
+                          activeTab === "SUMMARY" 
+                            ? "bg-white text-slate-900 shadow-xs" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5 text-slate-400" />
+                        Analytics Delta
+                      </button>
 
-                    <button
-                      onClick={() => setActiveTab("COPILOT")}
-                      className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition select-none cursor-pointer whitespace-nowrap ${
-                        activeTab === "COPILOT" 
-                          ? "bg-white text-slate-900 shadow-sm font-bold" 
-                          : "text-slate-500 hover:text-slate-900"
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-brand animate-pulse" />
-                      PPC Co-pilot AI
-                    </button>
+                      <button
+                        onClick={() => setActiveTab("COPILOT")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap ${
+                          activeTab === "COPILOT" 
+                            ? "bg-white text-slate-900 shadow-xs" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+                        PPC Co-pilot AI
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab("NICHES")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap relative ${
+                          activeTab === "NICHES" 
+                            ? "bg-white text-slate-900 shadow-xs" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <div className="absolute top-1 right-1 flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                        </div>
+                        <Compass className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                        Niche Explorer v1
+                      </button>
+                    </div>
                   </div>
-                </div>
 
                 {/* Bulk Exports Buttons */}
                 <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
@@ -691,6 +708,13 @@ export default function App() {
                     activePresetName={STRATEGY_PRESETS[activeStrategy].name}
                     config={config}
                     stats={impact}
+                  />
+                )}
+
+                {activeTab === "NICHES" && (
+                  <NicheDiscovery
+                    rows={ppcRows}
+                    config={config}
                   />
                 )}
               </div>
