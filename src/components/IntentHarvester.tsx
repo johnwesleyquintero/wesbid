@@ -34,13 +34,13 @@ export default function IntentHarvester() {
   // Local editable streams
   const [autoTerms, setAutoTerms] = useState<AutoSearchTerm[]>(SAMPLE_AUTO_SEARCH_TERMS);
   const [intentKws, setIntentKws] = useState<IntentKeyword[]>(SAMPLE_INTENT_KEYWORDS);
-  const [seedBid, setSeedBid] = useState<number>(1.50);
+  const [seedBid, setSeedBid] = useState<string>("1.50");
 
   // New item draft states
   const [newAutoWord, setNewAutoWord] = useState("");
-  const [newAutoClicks, setNewAutoClicks] = useState(5);
-  const [newAutoOrders, setNewAutoOrders] = useState(1);
-  const [newAutoSpend, setNewAutoSpend] = useState(3.50);
+  const [newAutoClicks, setNewAutoClicks] = useState("5");
+  const [newAutoOrders, setNewAutoOrders] = useState("1");
+  const [newAutoSpend, setNewAutoSpend] = useState("3.50");
 
   const [newIntentWord, setNewIntentWord] = useState("");
   const [newIntentMatchType, setNewIntentMatchType] = useState<"EXACT" | "PHRASE" | "BROAD">("EXACT");
@@ -50,7 +50,8 @@ export default function IntentHarvester() {
 
   // Calculate results on the fly
   const harvestKeywords = useMemo(() => {
-    return getNewHarvestKeywords(autoTerms, intentKws, seedBid);
+    const seedBidNum = parseFloat(seedBid) || 1.50;
+    return getNewHarvestKeywords(autoTerms, intentKws, seedBidNum);
   }, [autoTerms, intentKws, seedBid]);
 
   // Set of active intents for highlight lookup
@@ -61,16 +62,22 @@ export default function IntentHarvester() {
   const addAutoRow = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAutoWord.trim()) return;
+    const clicks = parseInt(newAutoClicks) || 0;
+    const orders = parseInt(newAutoOrders) || 0;
+    const spend = parseFloat(newAutoSpend) || 0.0;
     setAutoTerms([
       ...autoTerms,
       {
         keyword: newAutoWord.trim(),
-        clicks: Math.max(0, newAutoClicks),
-        orders: Math.max(0, newAutoOrders),
-        spend: Math.max(0, newAutoSpend)
+        clicks: Math.max(0, clicks),
+        orders: Math.max(0, orders),
+        spend: Math.max(0, spend)
       }
     ]);
     setNewAutoWord("");
+    setNewAutoClicks("5");
+    setNewAutoOrders("1");
+    setNewAutoSpend("3.50");
   };
 
   const addIntentRow = (e: React.FormEvent) => {
@@ -178,7 +185,7 @@ export default function IntentHarvester() {
                     min="0.10"
                     max="5.00"
                     value={seedBid}
-                    onChange={(e) => setSeedBid(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setSeedBid(e.target.value)}
                     className="w-14 px-1 py-0.5 text-xs font-bold text-slate-800 font-mono outline-none border-none text-right"
                   />
                 </div>
@@ -205,7 +212,7 @@ export default function IntentHarvester() {
                   type="number"
                   min="0"
                   value={newAutoClicks}
-                  onChange={(e) => setNewAutoClicks(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setNewAutoClicks(e.target.value)}
                   className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-250 rounded-md outline-none focus:ring-1 focus:ring-emerald-500 font-bold font-mono"
                 />
               </div>
@@ -216,7 +223,7 @@ export default function IntentHarvester() {
                   type="number"
                   min="0"
                   value={newAutoOrders}
-                  onChange={(e) => setNewAutoOrders(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setNewAutoOrders(e.target.value)}
                   className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-250 rounded-md outline-none focus:ring-1 focus:ring-emerald-500 font-bold font-mono"
                 />
               </div>
@@ -228,7 +235,7 @@ export default function IntentHarvester() {
                   step="0.10"
                   min="0"
                   value={newAutoSpend}
-                  onChange={(e) => setNewAutoSpend(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setNewAutoSpend(e.target.value)}
                   className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-250 rounded-md outline-none focus:ring-1 focus:ring-emerald-500 font-bold font-mono"
                 />
               </div>

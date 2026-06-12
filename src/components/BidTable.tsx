@@ -62,6 +62,9 @@ export default function BidTable({
   // Expanded query rows (collapse/rollup state)
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
 
+  // Local temporary editing state to prevent .toFixed(2) formatting from blocking user typing
+  const [editingValues, setEditingValues] = useState<Record<string, string>>({});
+
   const toggleRowExpanded = (rowId: string) => {
     const nextSet = new Set(expandedRowIds);
     if (nextSet.has(rowId)) {
@@ -543,10 +546,26 @@ export default function BidTable({
                               type="number"
                               step="0.01"
                               min="0.01"
-                              value={curBid === 0 ? "" : Number(curBid).toFixed(2)}
+                              value={
+                                editingValues[`${row.id}-current`] !== undefined
+                                  ? editingValues[`${row.id}-current`]
+                                  : (curBid === 0 ? "" : Number(curBid).toFixed(2))
+                              }
                               onChange={(e) => {
-                                const val = parseFloat(e.target.value);
+                                const valStr = e.target.value;
+                                setEditingValues(prev => ({
+                                  ...prev,
+                                  [`${row.id}-current`]: valStr
+                                }));
+                                const val = parseFloat(valStr);
                                 if (!isNaN(val)) onCurrentBidChange(row.id, val);
+                              }}
+                              onBlur={() => {
+                                setEditingValues(prev => {
+                                  const next = { ...prev };
+                                  delete next[`${row.id}-current`];
+                                  return next;
+                                });
                               }}
                               className="w-full pl-4.5 pr-1.5 py-1 text-xs text-right font-mono font-semibold rounded-md bg-slate-50 border border-slate-200 outline-none focus:ring-1 focus:ring-slate-400 text-slate-700 hover:bg-slate-100/50 focus:bg-white transition-all shadow-3xs"
                               title="Override current baseline bid if it does not match what's live in Amazon Campaign Manager"
@@ -573,10 +592,26 @@ export default function BidTable({
                               type="number"
                               step="0.01"
                               min="0.01"
-                              value={sugBid === 0 ? "" : Number(sugBid).toFixed(2)}
+                              value={
+                                editingValues[`${row.id}-suggested`] !== undefined
+                                  ? editingValues[`${row.id}-suggested`]
+                                  : (sugBid === 0 ? "" : Number(sugBid).toFixed(2))
+                              }
                               onChange={(e) => {
-                                const val = parseFloat(e.target.value);
+                                const valStr = e.target.value;
+                                setEditingValues(prev => ({
+                                  ...prev,
+                                  [`${row.id}-suggested`]: valStr
+                                }));
+                                const val = parseFloat(valStr);
                                 if (!isNaN(val)) onBidOverride(row.id, val);
+                              }}
+                              onBlur={() => {
+                                setEditingValues(prev => {
+                                  const next = { ...prev };
+                                  delete next[`${row.id}-suggested`];
+                                  return next;
+                                });
                               }}
                               className={`w-full pl-4.5 pr-1.5 py-1 text-xs text-right font-mono font-bold rounded-md bg-white border border-slate-200 outline-none focus:ring-1 focus:ring-brand ${
                                 isOverridden 
