@@ -50,7 +50,7 @@ export default function SummaryPanel({ rows, recommendations, impact }: SummaryP
   const distributionData = [
     { name: "SCALE (Raise)", value: impact.scaleCount, color: "#059669" },
     { name: "HOLD (Stable)", value: impact.holdCount, color: "#d97706" },
-    { name: "REDUCE (Lower)", value: impact.reduceCount - impact.bleederCount, color: "#dc2626" },
+    { name: "REDUCE (Lower)", value: Math.max(0, impact.reduceCount - impact.bleederCount), color: "#dc2626" },
     { name: "Bleeders Filtered", value: impact.bleederCount, color: "#94a3b8" }
   ].filter(d => d.value > 0);
 

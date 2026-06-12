@@ -733,7 +733,7 @@ export default function App() {
                 )}
 
                 {activeTab === "DEDUP" && (
-                  <IntentHarvester />
+                  <IntentHarvester rows={ppcRows} />
                 )}
               </div>
 

@@ -21,6 +21,22 @@ import {
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation } from "../types";
 
+function HighlightText({ text, highlight }: { text: string; highlight: string }) {
+  if (!highlight.trim()) return <span>{text}</span>;
+  const parts = text.split(new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'));
+  return (
+    <span>
+      {parts.map((part, i) => 
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <mark key={i} className="bg-amber-100 text-amber-950 px-0.5 rounded font-bold">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+}
+
 interface BidTableProps {
   rows: AmazonPpcRow[];
   recommendations: Record<string, BidRecommendation>;
@@ -254,10 +270,18 @@ export default function BidTable({
       {/* Bulk Toolbar, visible only when selections exist */}
       {selectedRowIds.size > 0 && (
         <div className="bg-slate-900 text-white px-5 py-3 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold bg-brand/10 text-brand border border-brand/20 px-2 py-0.5 rounded-full select-none">
-              {selectedRowIds.size} Selected
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold bg-brand bg-emerald-600/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full select-none">
+                {selectedRowIds.size} Selected
+              </span>
+              <button 
+                onClick={() => setSelectedRowIds(new Set())}
+                className="text-[10px] text-slate-400 hover:text-white hover:underline cursor-pointer transition"
+              >
+                (Clear selection)
+              </button>
+            </div>
             <p className="text-xs text-slate-300">Run sandbox actions in bulk across these targeting terms:</p>
           </div>
 
@@ -431,8 +455,26 @@ export default function BidTable({
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
             {paginatedRows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-8 text-center text-slate-400">
-                  No matching keywords found for active filters.
+                <td colSpan={10} className="p-12 text-center text-slate-400">
+                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
+                    <div className="p-3 bg-slate-100 text-slate-400 rounded-full border border-slate-200/50">
+                      <Search className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-slate-800">No matching PPC targets</h4>
+                    <p className="text-slate-400 text-xs leading-normal">
+                      No keyword rows match your search query or selected active recommendation state. Try widening your search or clearing active filters.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setSearchTerm("");
+                        setActionFilter("ALL");
+                        setCurrentPage(1);
+                      }}
+                      className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 text-slate-600 font-semibold rounded-lg text-xs transition cursor-pointer select-none"
+                    >
+                      Reset active filters
+                    </button>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -476,7 +518,9 @@ export default function BidTable({
                       {/* Targeting details */}
                       <td className="p-4 max-w-sm">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-semibold text-slate-900 tracking-tight break-words">{row.targeting}</span>
+                          <span className="font-semibold text-slate-900 tracking-tight break-words">
+                            <HighlightText text={row.targeting} highlight={searchTerm} />
+                          </span>
                           
                           {row.impressionShare !== undefined && (
                             <span 
@@ -507,7 +551,9 @@ export default function BidTable({
                         </div>
                         <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                           <span className="font-medium bg-slate-100 text-slate-500 px-1.5 py-0.25 rounded">{row.matchType || "Broad"}</span>
-                          <span className="truncate">{row.campaign}</span>
+                          <span className="truncate">
+                            <HighlightText text={row.campaign} highlight={searchTerm} />
+                          </span>
                           <span>•</span>
                           <span className="truncate">{row.adGroup}</span>
                         </div>

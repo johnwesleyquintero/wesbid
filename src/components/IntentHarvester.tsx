@@ -30,7 +30,17 @@ import {
   SAMPLE_INTENT_KEYWORDS 
 } from "../lib/intentDedup";
 
-export default function IntentHarvester() {
+import { AmazonPpcRow } from "../types";
+
+export interface IntentHarvesterProps {
+  rows?: AmazonPpcRow[];
+}
+
+export default function IntentHarvester({ rows = [] }: IntentHarvesterProps) {
+  // Track where the current data is coming from: "sandbox" (default mock/sample data) or "spreadsheet" (real imported data)
+  const [dataSource, setDataSource] = useState<"sandbox" | "spreadsheet">("sandbox");
+  const [importStats, setImportStats] = useState<{ termsExtracted: number; intentsExtracted: number } | null>(null);
+
   // Local editable streams
   const [autoTerms, setAutoTerms] = useState<AutoSearchTerm[]>(SAMPLE_AUTO_SEARCH_TERMS);
   const [intentKws, setIntentKws] = useState<IntentKeyword[]>(SAMPLE_INTENT_KEYWORDS);
@@ -47,6 +57,82 @@ export default function IntentHarvester() {
 
   // Success indicator
   const [isCopied, setIsCopied] = useState(false);
+
+  // Parse stats from uploaded sheet for quick preview metrics
+  const spreadsheetStats = useMemo(() => {
+    if (!rows || rows.length === 0) return null;
+    let potentialSearchTerms = 0;
+    let potentialManualIntents = 0;
+    
+    rows.forEach(r => {
+      potentialSearchTerms += r.searchTerms?.length || 0;
+      if (r.matchType && r.matchType !== "Targeting" && r.targeting && r.targeting !== "*") {
+        const isAsin = /^[A-Z0-9]{10}$/i.test(r.targeting.trim());
+        if (!isAsin) {
+          potentialManualIntents++;
+        }
+      }
+    });
+
+    return { potentialSearchTerms, potentialManualIntents };
+  }, [rows]);
+
+  // Handler: Parse and load real customer search terms & active targets from the uploaded spreadsheet
+  const handleImportFromSpreadsheet = () => {
+    const extractedAuto: AutoSearchTerm[] = [];
+    const extractedIntent: IntentKeyword[] = [];
+    const seenQueries = new Set<string>();
+    const seenIntents = new Set<string>();
+
+    rows.forEach(row => {
+      // 1. Extract customer-searched terms (Auto-targeting keyword suggestions)
+      if (row.searchTerms && row.searchTerms.length > 0) {
+        row.searchTerms.forEach(st => {
+          const key = normalize(st.term);
+          if (!seenQueries.has(key) && st.term.trim()) {
+            seenQueries.add(key);
+            extractedAuto.push({
+              keyword: st.term,
+              clicks: st.clicks,
+              orders: st.orders,
+              spend: st.spend
+            });
+          }
+        });
+      }
+
+      // 2. Extract active targeted manual campaign keywords (deduplication target index)
+      if (row.matchType && row.matchType !== "Targeting" && row.targeting && row.targeting !== "*") {
+        const isAsin = /^[A-Z0-9]{10}$/i.test(row.targeting.trim());
+        if (!isAsin) {
+          const key = `${normalize(row.targeting)}|||${row.matchType}`;
+          if (!seenIntents.has(key)) {
+            seenIntents.add(key);
+            extractedIntent.push({
+              keyword: row.targeting,
+              matchType: row.matchType.toUpperCase() as "EXACT" | "PHRASE" | "BROAD"
+            });
+          }
+        }
+      }
+    });
+
+    // Overwrite the local lists with extracted live data
+    setAutoTerms(extractedAuto.length > 0 ? extractedAuto : SAMPLE_AUTO_SEARCH_TERMS);
+    setIntentKws(extractedIntent.length > 0 ? extractedIntent : SAMPLE_INTENT_KEYWORDS);
+    setImportStats({
+      termsExtracted: extractedAuto.length,
+      intentsExtracted: extractedIntent.length
+    });
+    setDataSource("spreadsheet");
+  };
+
+  const handleResetToSandbox = () => {
+    setAutoTerms(SAMPLE_AUTO_SEARCH_TERMS);
+    setIntentKws(SAMPLE_INTENT_KEYWORDS);
+    setImportStats(null);
+    setDataSource("sandbox");
+  };
 
   // Calculate results on the fly
   const harvestKeywords = useMemo(() => {
@@ -106,11 +192,11 @@ export default function IntentHarvester() {
     
     // Format as Tab Separated Bulk Sheet format for instant Amazon paste-ability
     const headers = "Keyword\tMatch Type\tBidding Seed Override\tCampaign Type";
-    const rows = harvestKeywords.map(k => 
+    const rowsText = harvestKeywords.map(k => 
       `${k.keyword}\t${k.matchType}\t$${k.bid.toFixed(2)}\tManual Intent Extraction`
     ).join("\n");
 
-    navigator.clipboard.writeText(`${headers}\n${rows}`);
+    navigator.clipboard.writeText(`${headers}\n${rowsText}`);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -152,6 +238,77 @@ export default function IntentHarvester() {
           <span className="text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
             <ShieldCheck className="w-3 h-3" /> Safe Harvest Output
           </span>
+        </div>
+      </div>
+
+      {/* Spreadsheet Integration & Status Banner */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3 text-left">
+          <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${dataSource === "spreadsheet" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-50 text-slate-500 border border-slate-100"}`}>
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="flex items-center gap-1.5 leading-none mb-1">
+              <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                dataSource === "spreadsheet" 
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200/50" 
+                  : "bg-amber-100/80 text-amber-900 border border-amber-200/40"
+              }`}>
+                {dataSource === "spreadsheet" ? "Live Spreadsheet Mode" : "Sandbox Playground Mode"}
+              </span>
+
+              {rows.length > 0 && dataSource === "sandbox" && (
+                <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-150 px-1.5 py-0.5 rounded animate-pulse">
+                  Unloaded Report Available
+                </span>
+              )}
+            </span>
+
+            <h3 className="text-xs font-bold text-slate-900">
+              {dataSource === "spreadsheet" 
+                ? `Active Data Feed: "${importStats?.termsExtracted || 0}" search queries extracted & checkable`
+                : "Using Default Interactive Sandbox Dataset"
+              }
+            </h3>
+            
+            <p className="text-[11px] text-slate-500 mt-0.5 max-w-2xl">
+              {rows.length > 0 
+                ? `Your uploaded report contains ${spreadsheetStats?.potentialSearchTerms || 0} customer search terms and ${spreadsheetStats?.potentialManualIntents || 0} active manual bid targets. Push the trigger below to ingest and dedup this live dataset.`
+                : "Upload an Amazon Targeting or Search Term Report CSV to the dropzone at any time. WesBid will extract active bids vs. search query histories to automate extraction and deduplication instantly."
+              }
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0 self-stretch md:self-auto">
+          {rows.length > 0 ? (
+            <>
+              {dataSource === "spreadsheet" ? (
+                <button
+                  type="button"
+                  onClick={handleResetToSandbox}
+                  className="px-3 py-2 text-[11px] font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-55 bg-slate-100 border border-slate-200 rounded-lg transition-all cursor-pointer select-none"
+                >
+                  Reset to Sandbox
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleImportFromSpreadsheet}
+                className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-black text-white rounded-lg transition-all shadow-3xs cursor-pointer select-none ${
+                  dataSource === "spreadsheet"
+                    ? "bg-emerald-600 hover:bg-emerald-700 hover:shadow-xs"
+                    : "bg-indigo-650 hover:bg-indigo-700 hover:shadow-xs bg-indigo-600 text-white"
+                }`}
+              >
+                <span>{dataSource === "spreadsheet" ? "⚡ Re-Sync Excel Terms" : "⚡ Load Active Spreadsheet Data"}</span>
+              </button>
+            </>
+          ) : (
+            <div className="text-[10px] text-slate-400 bg-slate-50 border border-slate-200/60 px-3 py-2 rounded-lg italic font-medium">
+              Sheet upload inactive. Import a file on the main table to unlock.
+            </div>
+          )}
         </div>
       </div>
 
@@ -457,8 +614,8 @@ export default function IntentHarvester() {
                     <span>Ready</span>
                   </div>
                   <pre className="text-[9px] font-mono text-emerald-350 bg-slate-900 p-2 rounded leading-loose select-all overflow-x-auto text-emerald-350">
-{`Keyword\tMatchType\tBid\tCampaign
-${harvestKeywords.map(k => `${k.keyword}\t${k.matchType}\t${k.bid.toFixed(2)}\theader`).join("\n")}`}
+{`Keyword\tMatch Type\tBidding Seed Override\tCampaign Type
+${harvestKeywords.map(k => `${k.keyword}\t${k.matchType}\t$${k.bid.toFixed(2)}\tManual Intent Extraction`).join("\n")}`}
                   </pre>
                 </div>
 

@@ -25,7 +25,7 @@ export default function UploadDropzone({ onDataLoaded }: UploadDropzoneProps) {
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true);
-    } else if (e.type === "draglave" || e.type === "dragend") {
+    } else if (e.type === "dragleave" || e.type === "dragend") {
       setDragActive(false);
     }
   };
