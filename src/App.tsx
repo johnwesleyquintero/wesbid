@@ -21,7 +21,8 @@ import {
   RotateCw,
   ChevronLeft,
   ChevronRight,
-  Compass
+  Compass,
+  FolderSync
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation, OptimizerConfig, StrategyPreset, StrategyDefinition } from "./types";
 import { STRATEGY_PRESETS, calculateRowBid, calculateScenarioImpact } from "./lib/bidEngine";
@@ -33,6 +34,7 @@ import BidTable from "./components/BidTable";
 import SummaryPanel from "./components/SummaryPanel";
 import AssistantInsight from "./components/AssistantInsight";
 import NicheDiscovery from "./components/NicheDiscovery";
+import IntentHarvester from "./components/IntentHarvester";
 
 export default function App() {
   // PPC Data States
@@ -58,7 +60,7 @@ export default function App() {
   const [overrides, setOverrides] = useState<Record<string, number>>({});
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES">("TABLE");
+  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES" | "DEDUP">("TABLE");
 
   // Sidebar open/collapse state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -652,6 +654,18 @@ export default function App() {
                         <Compass className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
                         Niche Explorer v1
                       </button>
+
+                      <button
+                        onClick={() => setActiveTab("DEDUP")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap ${
+                          activeTab === "DEDUP" 
+                            ? "bg-white text-slate-900 shadow-xs font-bold font-sans" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <FolderSync className="w-3.5 h-3.5 text-emerald-600" />
+                        Intent Dedup Filter
+                      </button>
                     </div>
                   </div>
 
@@ -716,6 +730,10 @@ export default function App() {
                     rows={ppcRows}
                     config={config}
                   />
+                )}
+
+                {activeTab === "DEDUP" && (
+                  <IntentHarvester />
                 )}
               </div>
 
