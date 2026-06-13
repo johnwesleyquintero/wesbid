@@ -85,6 +85,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
   const idxCpc = getIndex(["CPC", "Cost Per Click", "Cost per click (CPC)", "cpc"]);
   const idxBid = getIndex(["Bid", "Current Bid", "Max Bid", "Keyword Bid", "bid", "ad group bid"]);
   const idxImpressionShare = getIndex(["Top-of-search Impression Share", "Top of Search Impression Share", "Impression Share", "impression share", "topofsearchimpressionshare", "top of search impression share"]);
+  const idxDate = getIndex(["Date", "Start Date", "End Date", "Day", "Reporting Date", "Posting Date", "date", "day", "startdate"]);
 
   const uniqueRowsMap = new Map<string, {
     campaign: string;
@@ -96,7 +97,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
     spend: number;
     sales: number;
     orders: number;
-    bids: number[];
+    bids: { bid: number; date: number; index: number }[];
     cpcs: number[];
     impressionShares: number[];
     searchTerms: Map<string, {
@@ -152,6 +153,16 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       if (bVal > 0) currentBid = bVal;
     }
 
+    // Parse the date of the record if available to resolve the bid chronologically
+    let rowDate = 0;
+    if (idxDate !== -1 && cells[idxDate]) {
+      const dateStr = cells[idxDate].replace(/^"(.*)"$/, "$1").trim();
+      const parsed = Date.parse(dateStr);
+      if (!isNaN(parsed)) {
+        rowDate = parsed;
+      }
+    }
+
     // Standardize representation to lower-case for entity group key matching
     const key = `${campaign.toLowerCase()}::${adGroup.toLowerCase()}::${targeting.toLowerCase()}::${matchType.toLowerCase()}`;
 
@@ -187,7 +198,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
         spend,
         sales,
         orders,
-        bids: currentBid !== undefined ? [currentBid] : [],
+        bids: currentBid !== undefined ? [{ bid: currentBid, date: rowDate, index: i }] : [],
         cpcs: cpc > 0 ? [cpc] : [],
         impressionShares: impressionShare !== undefined ? [impressionShare] : [],
         searchTerms: termsMap
@@ -199,7 +210,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       existing.sales += sales;
       existing.orders += orders;
       if (currentBid !== undefined) {
-        existing.bids.push(currentBid);
+        existing.bids.push({ bid: currentBid, date: rowDate, index: i });
       }
       if (cpc > 0) {
         existing.cpcs.push(cpc);
@@ -256,10 +267,16 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
 
     const acos = sales > 0 ? spend / sales : 0;
 
-    // Preferred Bid: Latest active wins
+    // Preferred Bid: Latest active chronologically wins!
     let bid: number | undefined = undefined;
     if (data.bids.length > 0) {
-      bid = data.bids[data.bids.length - 1];
+      const sortedBids = [...data.bids].sort((a, b) => {
+        if (a.date !== b.date) {
+          return a.date - b.date;
+        }
+        return a.index - b.index;
+      });
+      bid = sortedBids[sortedBids.length - 1].bid;
     }
 
     // Average Top-of-Search Impression share
