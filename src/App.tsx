@@ -299,6 +299,20 @@ export default function App() {
     setShowDedupeAlert(true);
   };
 
+  const hardResetApp = () => {
+    if (window.confirm("Perform a hard factory reset? This will restore raw parameters, purge custom formulas, clear database cache, and wipe manual overrides permanently!")) {
+      localStorage.clear();
+      setPpcRows([]);
+      setFilename("");
+      setOverrides({});
+      setRawRecordsCount(0);
+      setActiveStrategy("BALANCED");
+      setConfig(STRATEGY_PRESETS.BALANCED.config);
+      setShowDedupeAlert(true);
+      setActiveTab("TABLE");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans" id="app-container">
       {/* Prime Header navigation block */}
@@ -316,11 +330,13 @@ export default function App() {
           </div>
         </div>
 
-        {ppcRows.length > 0 && (
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          {ppcRows.length > 0 && (
             <span className="text-[10px] bg-slate-800 text-slate-300 font-semibold px-2.5 py-1 rounded-md border border-slate-700 select-none truncate max-w-44 md:max-w-64">
               📄 {filename}
             </span>
+          )}
+          {ppcRows.length > 0 && (
             <button
               onClick={leaveDataset}
               className="p-1 px-2.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-md text-[10px] font-semibold border border-transparent hover:border-slate-700 transition cursor-pointer"
@@ -328,8 +344,15 @@ export default function App() {
             >
               Clear File
             </button>
-          </div>
-        )}
+          )}
+          <button
+            onClick={hardResetApp}
+            className="p-1 px-2.5 bg-red-950/20 hover:bg-red-800/80 text-red-200 hover:text-white rounded-md text-[10px] font-semibold border border-red-900/40 hover:border-red-600 transition cursor-pointer"
+            title="Factory reset all data, overrides, and formula adjustments"
+          >
+            Reset Sandbox
+          </button>
+        </div>
       </header>
 
       {/* Main layout routing switch */}
@@ -618,6 +641,81 @@ export default function App() {
                     </div>
                   )}
                 </div>
+
+                {/* Live Impact Forecast widget */}
+                <div className="pt-4 border-t border-slate-200 mt-2 space-y-2 select-none">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Dynamic Live Forecast</span>
+                  <div className="bg-slate-900 text-white rounded-lg p-3.5 space-y-2 border border-slate-800 shadow-sm">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-400 font-semibold">Formula Bid Shift</span>
+                      <span className={`text-xs font-black font-mono ${impact.bidChangePercent < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                        {impact.bidChangePercent < 0 ? "" : "+"}{impact.bidChangePercent.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] font-medium">
+                      <span className="text-slate-400">Waste Recovery Ratio</span>
+                      <span className="text-indigo-400 font-bold font-mono">
+                        {Math.max(5, Math.min(95, Math.round((impact.bleederCount / (ppcRows.length || 1)) * 100)))}%
+                      </span>
+                    </div>
+                    <div className="border-t border-slate-800/80 pt-2 flex justify-between items-end">
+                      <div>
+                        <p className="text-[9px] text-slate-400 font-medium">Simulated Ad Spend</p>
+                        <p className="text-xs font-extrabold font-mono text-emerald-450 text-emerald-400">${impact.estimatedNewSpend.toFixed(0)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] text-slate-400 font-medium font-sans">Delta Change</p>
+                        <p className={`text-[9px] font-bold font-mono ${impact.estimatedNewSpend > impact.totalOriginalSpend ? "text-amber-500" : "text-emerald-400"}`}>
+                          {impact.estimatedNewSpend > impact.totalOriginalSpend ? "▲" : "▼"} 
+                          ${Math.abs(impact.totalOriginalSpend - impact.estimatedNewSpend).toFixed(0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Overrides list and batch restore card */}
+                {Object.keys(overrides).length > 0 && (
+                  <div className="pt-4 border-t border-slate-200 mt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Manual Overrides ({Object.keys(overrides).length})</span>
+                      <button 
+                        onClick={clearAllOverrides}
+                        className="text-[9px] text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-2.5 space-y-1.5 max-h-40 overflow-y-auto">
+                      {Object.entries(overrides).slice(0, 5).map(([id, bid]) => {
+                        const row = ppcRows.find(r => r.id === id);
+                        if (!row) return null;
+                        return (
+                          <div key={id} className="flex items-center justify-between text-[10px] bg-white border border-slate-100 p-1.5 rounded shadow-3xs">
+                            <span className="font-mono text-slate-800 truncate font-semibold max-w-28" title={row.targeting}>
+                              {row.targeting}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-amber-700 font-bold">${Number(bid).toFixed(2)}</span>
+                              <button
+                                onClick={() => handleResetOverride(id)}
+                                className="p-0.5 hover:bg-slate-100 text-slate-400 hover:text-slate-800 rounded transition cursor-pointer"
+                                title="Remove custom bid"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {Object.keys(overrides).length > 5 && (
+                        <p className="text-[9px] text-slate-400 text-center italic mt-1 pb-1">
+                          + {Object.keys(overrides).length - 5} more overrides active...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}

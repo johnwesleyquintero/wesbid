@@ -17,7 +17,12 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Copy,
+  ChevronDown as Sliders,
+  CheckSquare,
+  FileText,
+  X
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation } from "../types";
 
@@ -61,6 +66,15 @@ export default function BidTable({
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState<"ALL" | "SCALE" | "HOLD" | "REDUCE" | "BLEEDER">("ALL");
+  
+  // Advanced Metrics Filters State
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [minSpend, setMinSpend] = useState<number>(0);
+  const [minClicks, setMinClicks] = useState<number>(0);
+  const [onlyWaste, setOnlyWaste] = useState<boolean>(false); // clicks > 0 and 0 orders
+  const [onlyStars, setOnlyStars] = useState<boolean>(false); // CVR >= 20%
+  const [selectedMatchType, setSelectedMatchType] = useState<string>("ALL");
+  const [copyToast, setCopyToast] = useState<string | null>(null);
   
   // Sorting
   const [sortField, setSortField] = useState<SortField>("clicks");
@@ -126,6 +140,31 @@ export default function BidTable({
       });
     }
 
+    // Advanced match type filter
+    if (selectedMatchType !== "ALL") {
+      list = list.filter(r => r.matchType === selectedMatchType);
+    }
+
+    // Min spend filter
+    if (minSpend > 0) {
+      list = list.filter(r => r.spend >= minSpend);
+    }
+
+    // Min clicks filter
+    if (minClicks > 0) {
+      list = list.filter(r => r.clicks >= minClicks);
+    }
+
+    // Zero-order waste only filter (Clicks > 0 and 0 Orders)
+    if (onlyWaste) {
+      list = list.filter(r => r.clicks > 0 && r.orders === 0);
+    }
+
+    // Star converted targets (Conversion stars: Sales > 0 and CVR >= 20% / orders >= 2)
+    if (onlyStars) {
+      list = list.filter(r => r.sales > 0 && r.orders >= 1 && r.cvr >= 0.15);
+    }
+
     // Numeric & Text Sort
     list.sort((a, b) => {
       let valA: any = a[sortField as keyof AmazonPpcRow] ?? 0;
@@ -151,7 +190,7 @@ export default function BidTable({
     });
 
     return list;
-  }, [rows, recommendations, searchTerm, actionFilter, sortField, sortAsc]);
+  }, [rows, recommendations, searchTerm, actionFilter, sortField, sortAsc, selectedMatchType, minSpend, minClicks, onlyWaste, onlyStars]);
 
   // Pagination bounds
   const totalPages = Math.ceil(processedRows.length / pageSize);
@@ -210,29 +249,73 @@ export default function BidTable({
     setIsOpenBulkMenu(false);
   };
 
+  const handleCopyFilteredTargets = () => {
+    if (processedRows.length === 0) return;
+    
+    // Header
+    let text = "Targeting\tMatch Type\tCampaign\tCurrent Bid\tSuggested Bid\tSpend\tSales\tOrders\n";
+    processedRows.forEach(row => {
+      const rec = recommendations[row.id];
+      const curBid = row.currentBid || row.cpc || 1.00;
+      const sugBid = rec ? rec.suggestedBid : curBid;
+      text += `${row.targeting}\t${row.matchType || "Broad"}\t${row.campaign}\t$${curBid.toFixed(2)}\t$${sugBid.toFixed(2)}\t$${row.spend.toFixed(2)}\t$${row.sales.toFixed(2)}\t${row.orders}\n`;
+    });
+
+    navigator.clipboard.writeText(text);
+    setCopyToast(`Successfully copied ${processedRows.length} targets! Standard tab-delimited columns are ready to paste into Excel or Seller Central bulk sheets.`);
+    setTimeout(() => {
+      setCopyToast(null);
+    }, 5500);
+  };
+
+  const clearAdvancedFilters = () => {
+    setMinSpend(0);
+    setMinClicks(0);
+    setOnlyWaste(false);
+    setOnlyStars(false);
+    setSelectedMatchType("ALL");
+  };
+
+  const hasActiveAdvancedFilters = minSpend > 0 || minClicks > 0 || onlyWaste || onlyStars || selectedMatchType !== "ALL";
+
   return (
-    <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs mt-6" id="bidding-cockpit">
+    <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs mt-6 relative" id="bidding-cockpit">
+      {/* Toast Notification for Clipboard Copy */}
+      {copyToast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-indigo-900 border border-indigo-700 text-white rounded-xl shadow-xl px-4.5 py-3 text-xs flex items-center gap-3 animate-fade-in w-11/12 max-w-lg">
+          <div className="p-1 rounded-full bg-indigo-500/20 text-white">
+            <Check className="w-4 h-4" />
+          </div>
+          <div className="flex-1 font-medium leading-relaxed">
+            {copyToast}
+          </div>
+          <button onClick={() => setCopyToast(null)} className="p-1 hover:bg-white/10 rounded text-slate-300 hover:text-white transition cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Control Panel: Search & State Filters */}
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row items-center gap-4 justify-between">
+      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row items-center gap-4 justify-between">
         {/* State filters */}
-        <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg self-start md:self-center overflow-x-auto w-full md:w-auto">
+        <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg self-start xl:self-center overflow-x-auto w-full xl:w-auto">
           {(["ALL", "SCALE", "HOLD", "REDUCE", "BLEEDER"] as const).map(f => {
             const label = f === "ALL" 
               ? "All Bids" 
               : f === "SCALE" 
-              ? "Scale (Raise)" 
+              ? "Scale" 
               : f === "HOLD" 
               ? "Hold" 
               : f === "REDUCE" 
               ? "Reduce" 
-              : "Bleeders Only";
+              : "Bleeders";
             
             const activeColor = f === "SCALE" 
-              ? "bg-scale-bg text-scale-text border border-emerald-200" 
+              ? "bg-slate-900 text-white shadow-xs" 
               : f === "HOLD" 
-              ? "bg-hold-bg text-hold-text border border-amber-200" 
+              ? "bg-amber-600 text-white shadow-xs" 
               : f === "REDUCE" || f === "BLEEDER"
-              ? "bg-reduce-bg text-reduce-text border border-rose-200"
+              ? "bg-rose-600 text-white shadow-xs"
               : "bg-slate-800 text-white";
 
             return (
@@ -251,21 +334,144 @@ export default function BidTable({
           })}
         </div>
 
-        {/* Search */}
-        <div className="relative w-full md:w-72">
-          <span className="absolute left-3 top-2.5 text-slate-400">
-            <Search className="w-4 h-4" />
-          </span>
-          <input
-            type="text"
-            placeholder="Search keywords or campaigns..."
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-white"
-            id="table-search"
-          />
+        {/* Search, Advanced Metric Filter Button and Simple Clipboard Copier */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto justify-end">
+          {/* Advanced Filter Trigger */}
+          <button
+            onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+              isAdvancedOpen || hasActiveAdvancedFilters
+                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Metric Filters</span>
+            {hasActiveAdvancedFilters && (
+              <span className="h-2 w-2 rounded-full bg-indigo-600 inline-block animate-pulse"></span>
+            )}
+          </button>
+
+          {/* Quick Clipboard Copy */}
+          <button
+            onClick={handleCopyFilteredTargets}
+            disabled={processedRows.length === 0}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+            title="Copy current filtered keyword recommendations ready to excel clipboard"
+            id="btn-quick-copy"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>Copy Filtered ({processedRows.length})</span>
+          </button>
+
+          {/* Search bar */}
+          <div className="relative w-full sm:w-64">
+            <span className="absolute left-3 top-2.5 text-slate-400">
+              <Search className="w-4 h-4" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search target keywords / ASINs..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-white"
+              id="table-search"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Expandable Advanced Filters Drawer Panel */}
+      {isAdvancedOpen && (
+        <div className="bg-slate-50 border-b border-slate-150 p-5 grid grid-cols-1 md:grid-cols-4 gap-6 text-xs animate-fade-in">
+          {/* Match types */}
+          <div className="space-y-2">
+            <label className="font-bold text-slate-650 block">Target Match Type</label>
+            <select
+              value={selectedMatchType}
+              onChange={(e) => { setSelectedMatchType(e.target.value); setCurrentPage(1); }}
+              className="w-full p-2 bg-white border border-slate-200 rounded-lg outline-none font-semibold text-slate-700"
+            >
+              <option value="ALL">All Types</option>
+              <option value="EXACT">Exact</option>
+              <option value="PHRASE">Phrase</option>
+              <option value="BROAD">Broad</option>
+              <option value="TARGETING_EXPRESSION_PREDEFINED">Expression / Auto</option>
+            </select>
+          </div>
+
+          {/* Spend Slider */}
+          <div className="space-y-1">
+            <div className="flex justify-between font-bold">
+              <span>Min Spend Filters</span>
+              <span className="font-mono text-slate-900">${minSpend}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="500"
+              step="5"
+              value={minSpend}
+              onChange={(e) => { setMinSpend(Number(e.target.value)); setCurrentPage(1); }}
+              className="w-full accent-indigo-650 cursor-ew-resize h-1.5 bg-slate-200 rounded-lg"
+            />
+            <p className="text-[9px] text-slate-400">Hide targeting metrics with spend lower than this.</p>
+          </div>
+
+          {/* Clicks Slider */}
+          <div className="space-y-1">
+            <div className="flex justify-between font-bold">
+              <span>Min Clicks Filter</span>
+              <span className="font-mono text-slate-900">{minClicks} clicks</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="2"
+              value={minClicks}
+              onChange={(e) => { setMinClicks(Number(e.target.value)); setCurrentPage(1); }}
+              className="w-full accent-indigo-650 cursor-ew-resize h-1.5 bg-slate-200 rounded-lg"
+            />
+            <p className="text-[9px] text-slate-400">Filter keywords with minimum click traffic volumes.</p>
+          </div>
+
+          {/* Dynamic flags checkboxes */}
+          <div className="space-y-2">
+            <label className="font-bold text-slate-650 block">Performance Flags</label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={onlyWaste}
+                  onChange={(e) => { setOnlyWaste(e.target.checked); setCurrentPage(1); }}
+                  className="rounded border-slate-300 text-brand accent-brand focus:ring-brand"
+                />
+                <span className="text-rose-750">Bleeder Clicks with 0 Sales</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={onlyStars}
+                  onChange={(e) => { setOnlyStars(e.target.checked); setCurrentPage(1); }}
+                  className="rounded border-slate-300 text-brand accent-brand focus:ring-brand"
+                />
+                <span className="text-emerald-750">Star Converters CVR &ge; 15%</span>
+              </label>
+            </div>
+
+            {hasActiveAdvancedFilters && (
+              <button
+                onClick={clearAdvancedFilters}
+                className="mt-2 text-[10px] font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
+              >
+                Clear advanced filters
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bulk Toolbar, visible only when selections exist */}
       {selectedRowIds.size > 0 && (
