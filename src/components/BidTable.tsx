@@ -65,7 +65,7 @@ export default function BidTable({
 }: BidTableProps) {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [actionFilter, setActionFilter] = useState<"ALL" | "SCALE" | "HOLD" | "REDUCE" | "BLEEDER">("ALL");
+  const [actionFilter, setActionFilter] = useState<"ALL" | "SCALE" | "HOLD" | "REDUCE" | "BLEEDER" | "TOP_PERFORMERS">("ALL");
   
   // Advanced Metrics Filters State
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -75,6 +75,21 @@ export default function BidTable({
   const [onlyStars, setOnlyStars] = useState<boolean>(false); // CVR >= 20%
   const [selectedMatchType, setSelectedMatchType] = useState<string>("ALL");
   const [copyToast, setCopyToast] = useState<string | null>(null);
+
+  // Memoize top performers: top 10% computed across all rows sorted descending by ROAS
+  const topPerformersIds = useMemo(() => {
+    const saleRows = rows
+      .filter(r => r.sales > 0 && r.spend >= 0)
+      .map(r => {
+        const roas = r.spend > 0 ? (r.sales / r.spend) : (r.sales / 0.01);
+        return { id: r.id, roas };
+      });
+    
+    saleRows.sort((a, b) => b.roas - a.roas);
+    const topCount = Math.ceil(rows.length * 0.10);
+    const topIds = new Set(saleRows.slice(0, topCount).map(r => r.id));
+    return topIds;
+  }, [rows]);
   
   // Sorting
   const [sortField, setSortField] = useState<SortField>("clicks");
@@ -130,14 +145,18 @@ export default function BidTable({
 
     // Action state filter
     if (actionFilter !== "ALL") {
-      list = list.filter(r => {
-        const rec = recommendations[r.id];
-        if (!rec) return false;
-        if (actionFilter === "BLEEDER") {
-          return rec.action === "REDUCE" && rec.reason.toLowerCase().includes("bleeder");
-        }
-        return rec.action === actionFilter;
-      });
+      if (actionFilter === "TOP_PERFORMERS") {
+        list = list.filter(r => topPerformersIds.has(r.id));
+      } else {
+        list = list.filter(r => {
+          const rec = recommendations[r.id];
+          if (!rec) return false;
+          if (actionFilter === "BLEEDER") {
+            return rec.action === "REDUCE" && rec.reason.toLowerCase().includes("bleeder");
+          }
+          return rec.action === actionFilter;
+        });
+      }
     }
 
     // Advanced match type filter
@@ -190,7 +209,7 @@ export default function BidTable({
     });
 
     return list;
-  }, [rows, recommendations, searchTerm, actionFilter, sortField, sortAsc, selectedMatchType, minSpend, minClicks, onlyWaste, onlyStars]);
+  }, [rows, recommendations, searchTerm, actionFilter, sortField, sortAsc, selectedMatchType, minSpend, minClicks, onlyWaste, onlyStars, topPerformersIds]);
 
   // Pagination bounds
   const totalPages = Math.ceil(processedRows.length / pageSize);
@@ -299,9 +318,11 @@ export default function BidTable({
       <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row items-center gap-4 justify-between">
         {/* State filters */}
         <div className="flex gap-1.5 p-1 bg-slate-100 rounded-lg self-start xl:self-center overflow-x-auto w-full xl:w-auto">
-          {(["ALL", "SCALE", "HOLD", "REDUCE", "BLEEDER"] as const).map(f => {
+          {(["ALL", "TOP_PERFORMERS", "SCALE", "HOLD", "REDUCE", "BLEEDER"] as const).map(f => {
             const label = f === "ALL" 
               ? "All Bids" 
+              : f === "TOP_PERFORMERS"
+              ? "⭐ Top Performers"
               : f === "SCALE" 
               ? "Scale" 
               : f === "HOLD" 
@@ -312,6 +333,8 @@ export default function BidTable({
             
             const activeColor = f === "SCALE" 
               ? "bg-slate-900 text-white shadow-xs" 
+              : f === "TOP_PERFORMERS"
+              ? "bg-amber-500 text-slate-950 font-extrabold border border-amber-300 shadow-sm animate-fade-in"
               : f === "HOLD" 
               ? "bg-amber-600 text-white shadow-xs" 
               : f === "REDUCE" || f === "BLEEDER"
@@ -691,6 +714,7 @@ export default function BidTable({
                 const curBid = row.currentBid || row.cpc || 1.00;
                 const sugBid = rec ? rec.suggestedBid : curBid;
                 const isOverridden = rec ? rec.isOverridden : false;
+                const isTopPerformer = topPerformersIds.has(row.id);
 
                 // Color code action badge
                 let badgeClass = "bg-slate-100 text-slate-700";
@@ -710,7 +734,11 @@ export default function BidTable({
 
                 return (
                   <React.Fragment key={row.id}>
-                    <tr className={`hover:bg-slate-50/50 transition-colors ${checked ? "bg-slate-50/70" : ""} ${expandedRowIds.has(row.id) ? "bg-slate-50/40 border-b-0" : ""}`}>
+                    <tr className={`hover:bg-slate-50/50 transition-colors ${
+                      isTopPerformer 
+                        ? "bg-amber-50/30 border-l-4 border-l-amber-500 font-medium" 
+                        : ""
+                    } ${checked ? "bg-slate-50/70" : ""} ${expandedRowIds.has(row.id) ? "bg-slate-50/40 border-b-0" : ""}`}>
                       {/* Checkbox */}
                       <td className="p-4 text-center">
                         <input
@@ -728,6 +756,16 @@ export default function BidTable({
                             <HighlightText text={row.targeting} highlight={searchTerm} />
                           </span>
                           
+                          {isTopPerformer && (
+                            <span 
+                              className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-black rounded-md shadow-xs animate-pulse select-none"
+                              title={`Top Performer - ROAS is in the top 10% of this dataset! ROAS: ${(row.spend > 0 ? row.sales / row.spend : row.sales / 0.01).toFixed(1)}x`}
+                            >
+                              <Sparkle className="w-2.5 h-2.5 text-amber-600" />
+                              <span>TOP PERFORMER</span>
+                            </span>
+                          )}
+
                           {row.impressionShare !== undefined && (
                             <span 
                               className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-black rounded-md border tracking-wider uppercase select-none ${
@@ -781,9 +819,14 @@ export default function BidTable({
                       {/* ACOS details */}
                       <td className="p-4 text-right font-bold">
                         {row.sales > 0 ? (
-                          <span className={row.acos > 0.40 ? "text-reduce-text" : (row.acos < 0.20 ? "text-scale-text" : "text-slate-800")}>
-                            {(row.acos * 100).toFixed(0)}%
-                          </span>
+                          <div className="flex flex-col items-end">
+                            <span className={row.acos > 0.40 ? "text-reduce-text" : (row.acos < 0.20 ? "text-scale-text" : "text-slate-800")}>
+                              {(row.acos * 100).toFixed(0)}%
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono font-medium whitespace-nowrap">
+                              {(row.spend > 0 ? row.sales / row.spend : row.sales / 0.01).toFixed(1)}x ROAS
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-slate-300">-</span>
                         )}

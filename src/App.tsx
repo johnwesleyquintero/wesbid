@@ -160,8 +160,24 @@ export default function App() {
   // Re-calculate recommended bids and user overrides on-the-fly
   const recommendations = useMemo(() => {
     const recs: Record<string, BidRecommendation> = {};
+    
+    // Pre-calculate Top Performers Set (Top 10% based on ROAS, only where sales > 0)
+    const topPerformersIds = new Set<string>();
+    const saleRows = ppcRows
+      .filter(r => r.sales > 0 && r.spend >= 0)
+      .map(r => {
+        const roas = r.spend > 0 ? (r.sales / r.spend) : (r.sales / 0.01);
+        return { id: r.id, roas };
+      });
+    
+    saleRows.sort((a, b) => b.roas - a.roas);
+    const topCount = Math.ceil(ppcRows.length * 0.10);
+    saleRows.slice(0, topCount).forEach(item => {
+      topPerformersIds.add(item.id);
+    });
+
     ppcRows.forEach(row => {
-      const rec = calculateRowBid(row, config);
+      let rec = calculateRowBid(row, config);
 
       if (overrides[row.id] !== undefined) {
         const rawManualBid = overrides[row.id];
@@ -196,6 +212,24 @@ export default function App() {
           isOverridden: true
         };
       } else {
+        // Automatically apply High-Impact bid scaling for Top Performers where no override exists
+        if (topPerformersIds.has(row.id)) {
+          const roas = row.spend > 0 ? (row.sales / row.spend) : (row.sales / 0.01);
+          
+          // Boost suggested bid from base suggested bid by an extra +20% for high-impact scaling
+          let boostedBid = rec.suggestedBid * 1.20;
+          
+          // Clamp to max/min strategy limits
+          boostedBid = Math.max(config.minBid, Math.min(config.maxBid, boostedBid));
+          
+          rec = {
+            ...rec,
+            suggestedBid: Number(boostedBid.toFixed(2)),
+            action: "SCALE",
+            reason: `✨ Top Performer (ROAS: ${roas.toFixed(1)}x, Top 10%): High-Impact +20% scaling suggested to aggressively capture premium placements.`,
+            confidence: "High"
+          };
+        }
         recs[row.id] = rec;
       }
     });

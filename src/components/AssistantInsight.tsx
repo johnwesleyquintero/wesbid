@@ -121,7 +121,32 @@ export default function AssistantInsight({
         })
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        // Attempt to extract the JSON object portion if there is surrounding formatting or text
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            data = JSON.parse(jsonMatch[0]);
+          } catch (innerErr) {
+            console.warn("Regex-extracted JSON block could not be parsed:", innerErr);
+          }
+        }
+      }
+
+      if (!data) {
+        const isHtml = rawText.trim().toLowerCase().startsWith("<!doctype") || 
+                       rawText.trim().toLowerCase().startsWith("<html") || 
+                       rawText.includes("The page c");
+        if (isHtml) {
+          throw new Error("The server returned an HTML/Error page instead of valid JSON. This usually indicates that the backend server is starting up, crashed, or encountered an internal network issue. If you are using a custom key, please check your key configuration.");
+        }
+        throw new Error(`The server response could not be parsed as valid JSON: ${rawText.slice(0, 150)}...`);
+      }
       
       if (!response.ok) {
         throw new Error(data.error || `Server returned code ${response.status}`);
