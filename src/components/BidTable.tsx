@@ -1048,6 +1048,7 @@ export default function BidTable({
                                     <th className="p-2.5 pl-4">Raw Customer Search Query</th>
                                     <th className="p-2.5 text-right w-24">Impressions</th>
                                     <th className="p-2.5 text-right w-20">Clicks</th>
+                                    <th className="p-2.5 text-right text-indigo-900 w-20 bg-indigo-50/5">CPC</th>
                                     <th className="p-2.5 text-right text-slate-705 w-24">Spend</th>
                                     <th className="p-2.5 text-right text-slate-905 w-24">Sales</th>
                                     <th className="p-2.5 text-right w-20">ACOS</th>
@@ -1088,6 +1089,9 @@ export default function BidTable({
                                       </td>
                                       <td className="p-2.5 text-right font-mono text-slate-500">{term.impressions}</td>
                                       <td className="p-2.5 text-right font-mono">{term.clicks}</td>
+                                      <td className="p-2.5 text-right font-mono text-indigo-950 font-bold bg-indigo-50/5" title="Calculated Customer Search Query CPC (Spend / Clicks)">
+                                        {term.clicks > 0 ? `$${(term.spend / term.clicks).toFixed(2)}` : "$0.00"}
+                                      </td>
                                       <td className="p-2.5 text-right font-mono text-slate-700">${term.spend.toFixed(2)}</td>
                                       <td className="p-2.5 text-right font-mono text-slate-950 font-bold">${term.sales.toFixed(2)}</td>
                                       <td className="p-2.5 text-right font-mono font-bold">
