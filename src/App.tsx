@@ -1043,6 +1043,7 @@ export default function App() {
                     onBulkOverride={handleBulkOverride}
                     onBulkSetAction={handleBulkSetAction}
                     onCurrentBidChange={handleCurrentBidChange}
+                    targetAcos={config.targetAcos}
                   />
                 )}
 

@@ -50,6 +50,7 @@ interface BidTableProps {
   onBulkOverride: (rowIds: string[], multiplier: number) => void;
   onBulkSetAction: (rowIds: string[], action: "SCALE" | "REDUCE" | "HOLD") => void;
   onCurrentBidChange: (rowId: string, newBid: number) => void;
+  targetAcos?: number;
 }
 
 type SortField = "targeting" | "clicks" | "spend" | "sales" | "acos" | "cpc" | "currentBid" | "suggestedBid" | "action" | "ctr";
@@ -61,7 +62,8 @@ export default function BidTable({
   onResetOverride,
   onBulkOverride,
   onBulkSetAction,
-  onCurrentBidChange
+  onCurrentBidChange,
+  targetAcos = 30
 }: BidTableProps) {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -1052,60 +1054,132 @@ export default function BidTable({
                                     <th className="p-2.5 text-right text-slate-705 w-24">Spend</th>
                                     <th className="p-2.5 text-right text-slate-905 w-24">Sales</th>
                                     <th className="p-2.5 text-right w-20">ACOS</th>
-                                    <th className="p-2.5 text-right pr-4 w-20">Orders</th>
+                                    <th className="p-2.5 text-right w-20">Orders</th>
+                                    <th className="p-2.5 text-right pr-4 text-emerald-900 bg-emerald-50/10 w-28 font-bold" title="Suggested Bid specifically for this customer search query based on its individual performance metrics and our Target ACOS.">Sugg. Bid</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-                                  {row.searchTerms.map((term, tIdx) => (
-                                    <tr key={tIdx} className="hover:bg-slate-50/70 transition-colors">
-                                      <td className="p-2.5 pl-4 font-mono text-slate-900 select-all font-semibold break-all">
-                                        <div className="flex flex-wrap items-center gap-1.5">
-                                          <span>{term.term}</span>
-                                          {term.clicks > 0 && term.clicks <= 2 && term.orders === 0 && (
-                                            <span 
-                                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-50 text-slate-400 border border-slate-200/60 text-[8px] font-bold rounded-md select-none cursor-help"
-                                              title="Observation phase active. Clicks are low; insufficient evidence to suspect waste."
-                                            >
-                                              🔍 Observing
+                                  {row.searchTerms.map((term, tIdx) => {
+                                    // Bidding formula calculation for Search Queries Rollup
+                                    const matchTypeUpper = (row.matchType || "").toUpperCase();
+                                    const targetingLower = (row.targeting || "").toLowerCase();
+                                    
+                                    const isExact = matchTypeUpper === "EXACT" || targetingLower.includes("[exact]") || targetingLower.includes("exact");
+                                    const isBroadOrPhrase = matchTypeUpper === "BROAD" || matchTypeUpper === "PHRASE" || targetingLower.includes("broad") || targetingLower.includes("phrase");
+                                    const isAutoTarget = ["loose-match", "close-match", "substitutes", "complements"].includes(targetingLower) || row.matchType === "-";
+                                    
+                                    const baseAcos = targetAcos || 30;
+                                    let queryTargetAcos = baseAcos;
+                                    if (isExact) {
+                                      queryTargetAcos = baseAcos * 1.10; // Exact match boost (+10%)
+                                    } else if (isBroadOrPhrase || isAutoTarget) {
+                                      queryTargetAcos = baseAcos * 0.85; // Broad match discount (-15%)
+                                    }
+
+                                    const queryCpc = term.clicks > 0 ? (term.spend / term.clicks) : 0;
+                                    const currentBid = row.currentBid || row.cpc || 1.00;
+                                    
+                                    let suggBidVal = currentBid;
+                                    let suggReason = "";
+                                    let statusColor = "text-slate-600 bg-slate-50/40 border border-slate-200/40";
+
+                                    if (term.clicks === 0) {
+                                      suggBidVal = currentBid;
+                                      suggReason = "No clicks recorded yet. Maintaining keyword's base bid.";
+                                      statusColor = "text-slate-500 bg-slate-50/70 border border-slate-200/50";
+                                    } else if (term.orders === 0) {
+                                      // Bleeder logic in search terms rollup
+                                      if (term.clicks >= 6) {
+                                        suggBidVal = Math.max(0.15, queryCpc * 0.60);
+                                        suggReason = `Critical Bleeder: ${term.clicks} clicks with no conversions. Reducing bid to 60% of CPC ($${queryCpc.toFixed(2)}) to halt budget leak.`;
+                                        statusColor = "text-rose-750 bg-rose-50 text-rose-800 border border-rose-250/30 font-semibold";
+                                      } else if (term.clicks >= 3) {
+                                        suggBidVal = Math.max(0.20, queryCpc * 0.80);
+                                        suggReason = `Weak Signal Bleeder: ${term.clicks} clicks with no conversions. Trimming bid to 80% of CPC ($${queryCpc.toFixed(2)}) to limit risk.`;
+                                        statusColor = "text-amber-700 bg-amber-50/50 border border-amber-220/30 font-medium";
+                                      } else {
+                                        suggBidVal = currentBid;
+                                        suggReason = `Observing period: Only ${term.clicks} click(s). Keeping starting targeting bid.`;
+                                        statusColor = "text-slate-600 bg-slate-50 border border-slate-200/50";
+                                      }
+                                    } else {
+                                      // Converting query
+                                      const queryAcos = term.spend / term.sales;
+                                      const queryTargetAcosDec = queryTargetAcos / 100;
+                                      const thresholdDec = 0.84 * queryTargetAcosDec;
+                                      
+                                      if (queryAcos < thresholdDec) {
+                                        // Highly efficient, boost CPC by 20% to acquire more impression share
+                                        suggBidVal = queryCpc * 1.20;
+                                        suggReason = `Highly Efficient! ACOS is ${(queryAcos * 100).toFixed(1)}% (Target: ${Math.round(queryTargetAcos)}%). Boosting average CPC by +20% to scale volume.`;
+                                        statusColor = "text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold";
+                                      } else {
+                                        // Target alignment factor formula
+                                        suggBidVal = (queryCpc / queryAcos) * queryTargetAcosDec;
+                                        suggReason = `Target Alignment: ACOS is ${(queryAcos * 100).toFixed(1)}% (Target: ${Math.round(queryTargetAcos)}%). Estimating optimal bid as (CPC $${queryCpc.toFixed(2)} / ACOS ${queryAcos.toFixed(3)}) x Target ACOS ${queryTargetAcosDec.toFixed(2)}.`;
+                                        statusColor = "text-indigo-700 bg-indigo-50 border border-indigo-150 font-bold";
+                                      }
+                                      
+                                      // Safety clamping to prevent wild actions
+                                      suggBidVal = Math.max(0.10, Math.min(Math.max(4.00, currentBid * 2), suggBidVal));
+                                    }
+
+                                    return (
+                                      <tr key={tIdx} className="hover:bg-slate-50/70 transition-colors">
+                                        <td className="p-2.5 pl-4 font-mono text-slate-900 select-all font-semibold break-all">
+                                          <div className="flex flex-wrap items-center gap-1.5">
+                                            <span>{term.term}</span>
+                                            {term.clicks > 0 && term.clicks <= 2 && term.orders === 0 && (
+                                              <span 
+                                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-50 text-slate-400 border border-slate-200/60 text-[8px] font-bold rounded-md select-none cursor-help"
+                                                title="Observation phase active. Clicks are low; insufficient evidence to suspect waste."
+                                              >
+                                                🔍 Observing
+                                              </span>
+                                            )}
+                                            {term.clicks >= 3 && term.clicks <= 5 && term.orders === 0 && (
+                                              <span 
+                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50/80 text-amber-700 border border-amber-200/65 text-[8px] uppercase font-extrabold rounded-md cursor-help"
+                                                title="Weak Waste Signal: This customer search query is eating clicks without a conversion. We recommend monitoring closely before implementing a full exclusion."
+                                              >
+                                                ⚠️ Weak Waste Signal (Monitor)
+                                              </span>
+                                            )}
+                                            {term.clicks >= 6 && term.orders === 0 && (
+                                              <span 
+                                                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/60 text-[8px] uppercase font-extrabold rounded-md cursor-help animate-pulse"
+                                                title="Hard Negative Candidate: Critical budget leakage. Significant clicks with absolutely zero sales. Highly recommended to add as a negative exact keyword in Seller Central."
+                                              >
+                                                🚨 Hard Negative Candidate (Action!)
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono text-slate-500">{term.impressions}</td>
+                                        <td className="p-2.5 text-right font-mono">{term.clicks}</td>
+                                        <td className="p-2.5 text-right font-mono text-indigo-950 font-bold bg-indigo-50/5" title="Calculated Customer Search Query CPC (Spend / Clicks)">
+                                          {term.clicks > 0 ? `$${(term.spend / term.clicks).toFixed(2)}` : "$0.00"}
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono text-slate-700">${term.spend.toFixed(2)}</td>
+                                        <td className="p-2.5 text-right font-mono text-slate-950 font-bold">${term.sales.toFixed(2)}</td>
+                                        <td className="p-2.5 text-right font-mono font-bold">
+                                          {term.sales > 0 ? (
+                                            <span className={term.acos > 0.40 ? "text-rose-600" : (term.acos < 0.20 ? "text-emerald-600" : "text-slate-800")}>
+                                              {(term.acos * 100).toFixed(0)}%
                                             </span>
+                                          ) : (
+                                            <span className="text-slate-300 font-normal">-</span>
                                           )}
-                                          {term.clicks >= 3 && term.clicks <= 5 && term.orders === 0 && (
-                                            <span 
-                                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50/80 text-amber-700 border border-amber-200/65 text-[8px] uppercase font-extrabold rounded-md cursor-help"
-                                              title="Weak Waste Signal: This customer search query is eating clicks without a conversion. We recommend monitoring closely before implementing a full exclusion."
-                                            >
-                                              ⚠️ Weak Waste Signal (Monitor)
-                                            </span>
-                                          )}
-                                          {term.clicks >= 6 && term.orders === 0 && (
-                                            <span 
-                                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200/60 text-[8px] uppercase font-extrabold rounded-md cursor-help animate-pulse"
-                                              title="Hard Negative Candidate: Critical budget leakage. Significant clicks with absolutely zero sales. Highly recommended to add as a negative exact keyword in Seller Central."
-                                            >
-                                              🚨 Hard Negative Candidate (Action!)
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="p-2.5 text-right font-mono text-slate-500">{term.impressions}</td>
-                                      <td className="p-2.5 text-right font-mono">{term.clicks}</td>
-                                      <td className="p-2.5 text-right font-mono text-indigo-950 font-bold bg-indigo-50/5" title="Calculated Customer Search Query CPC (Spend / Clicks)">
-                                        {term.clicks > 0 ? `$${(term.spend / term.clicks).toFixed(2)}` : "$0.00"}
-                                      </td>
-                                      <td className="p-2.5 text-right font-mono text-slate-700">${term.spend.toFixed(2)}</td>
-                                      <td className="p-2.5 text-right font-mono text-slate-950 font-bold">${term.sales.toFixed(2)}</td>
-                                      <td className="p-2.5 text-right font-mono font-bold">
-                                        {term.sales > 0 ? (
-                                          <span className={term.acos > 0.40 ? "text-rose-600" : (term.acos < 0.20 ? "text-emerald-600" : "text-slate-800")}>
-                                            {(term.acos * 100).toFixed(0)}%
+                                        </td>
+                                        <td className="p-2.5 text-right font-mono text-slate-900 font-bold">{term.orders}</td>
+                                        <td className="p-2.5 text-right pr-4 bg-emerald-50/10" title={suggReason}>
+                                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${statusColor} cursor-help`}>
+                                            ${suggBidVal.toFixed(2)}
                                           </span>
-                                        ) : (
-                                          <span className="text-slate-300 font-normal">-</span>
-                                        )}
-                                      </td>
-                                      <td className="p-2.5 text-right pr-4 font-mono text-slate-900 font-bold">{term.orders}</td>
-                                    </tr>
-                                  ))}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             </div>
