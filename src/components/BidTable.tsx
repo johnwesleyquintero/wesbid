@@ -669,6 +669,13 @@ export default function BidTable({
                 </div>
               </th>
 
+              <th className="p-4 text-right bg-violet-50/20 text-indigo-900 font-bold border-l border-slate-100 w-44">
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] tracking-wider uppercase">Projected Impact</span>
+                  <span className="text-[8px] text-slate-400 normal-case font-normal font-sans">Projected CPC • ACOS • ROAS</span>
+                </div>
+              </th>
+
               <th 
                 className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-center"
                 onClick={() => handleSort("action")}
@@ -684,7 +691,7 @@ export default function BidTable({
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
             {paginatedRows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-12 text-center text-slate-400">
+                <td colSpan={11} className="p-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
                     <div className="p-3 bg-slate-100 text-slate-400 rounded-full border border-slate-200/50">
                       <Search className="w-5 h-5 text-slate-400" />
@@ -918,6 +925,72 @@ export default function BidTable({
                         </div>
                       </td>
 
+                      {/* Projected Impact column */}
+                      <td className="p-4 text-right bg-violet-50/5 border-l border-slate-100 font-medium whitespace-nowrap">
+                        {(() => {
+                          const origBid = row.currentBid || row.cpc || 1.00;
+                          const suggBid = rec ? rec.suggestedBid : origBid;
+                          const rBidRatio = origBid > 0 ? (suggBid / origBid) : 1;
+
+                          // Projected CPC
+                          const projCpc = Math.max(0.02, Math.min(suggBid, row.cpc > 0 ? row.cpc * (1 + (rBidRatio - 1) * 0.75) : suggBid * 0.85));
+
+                          // Projected Spend
+                          const rElasticity = 0.75;
+                          const rSpendMult = 1 + (rBidRatio - 1) * rElasticity;
+                          const projSpend = Math.max(0, row.spend * rSpendMult);
+
+                          // Projected Sales
+                          let projSales = row.sales;
+                          if (rBidRatio < 1) {
+                            projSales = Math.max(0, row.sales * (1 + (rBidRatio - 1) * 0.35));
+                          } else {
+                            projSales = Math.max(0, row.sales * (1 + (rBidRatio - 1) * 0.55));
+                          }
+
+                          const projAcos = projSales > 0 ? (projSpend / projSales) : 0;
+                          const projRoas = projSpend > 0 ? (projSales / projSpend) : (projSales > 0 ? projSales / 0.01 : 0);
+
+                          const hasSales = row.sales > 0;
+
+                          return (
+                            <div className="flex flex-col items-end gap-0.5">
+                              {/* Projected CPC */}
+                              <div className="flex items-center gap-1 leading-none">
+                                <span className="text-[9px] text-slate-400">Est. CPC:</span>
+                                <span className="font-mono text-slate-700 font-semibold text-[11px]">${projCpc.toFixed(2)}</span>
+                              </div>
+
+                              {/* Projected ACOS */}
+                              <div className="flex items-center gap-1 leading-none">
+                                <span className="text-[9px] text-slate-400">Est. ACOS:</span>
+                                {hasSales ? (
+                                  <span className={`font-mono font-bold text-[11px] ${
+                                    projAcos > 0.40 ? "text-rose-600" : (projAcos < 0.20 ? "text-emerald-600" : "text-slate-705")
+                                  }`}>
+                                    {(projAcos * 100).toFixed(0)}%
+                                  </span>
+                                ) : (
+                                  <span className="font-mono text-slate-400 text-[11px]">-</span>
+                                )}
+                              </div>
+
+                              {/* Projected ROAS */}
+                              <div className="flex items-center gap-1 leading-none">
+                                <span className="text-[9px] text-slate-400">Est. ROAS:</span>
+                                {hasSales && projSpend > 0 ? (
+                                  <span className="font-mono font-bold text-indigo-750 text-[11px]">
+                                    {projRoas.toFixed(1)}x
+                                  </span>
+                                ) : (
+                                  <span className="font-mono text-slate-400 text-[11px]">-</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+
                       {/* Recommendation action badge */}
                       <td className="p-4 text-center whitespace-nowrap">
                         <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider ${badgeClass}`}>
@@ -929,7 +1002,7 @@ export default function BidTable({
                     {/* Subtable details for query slices */}
                     {expandedRowIds.has(row.id) && row.searchTerms && row.searchTerms.length > 0 && (
                       <tr className="bg-slate-50/85">
-                        <td className="p-0 border-b border-slate-200" colSpan={10}>
+                        <td className="p-0 border-b border-slate-200" colSpan={11}>
                           <div className="px-6 py-4 border-l-4 border-emerald-500 bg-emerald-50/10 whitespace-normal">
                             <div className="flex items-center gap-2 mb-2">
                               <Sparkle className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
