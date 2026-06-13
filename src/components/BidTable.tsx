@@ -669,10 +669,10 @@ export default function BidTable({
                 </div>
               </th>
 
-              <th className="p-4 text-right bg-violet-50/20 text-indigo-900 font-bold border-l border-slate-100 w-44">
+              <th className="p-4 text-right bg-violet-50/20 text-indigo-900 border-l border-slate-100 w-44" title="Simulated CPC, ACOS, and ROAS using historical ad spend elasticity and conversion model assumptions. Not a performance guarantee.">
                 <div className="flex flex-col items-end">
-                  <span className="text-[10px] tracking-wider uppercase">Projected Impact</span>
-                  <span className="text-[8px] text-slate-400 normal-case font-normal font-sans">Projected CPC • ACOS • ROAS</span>
+                  <span className="text-[10px] tracking-wider uppercase font-bold">Model Estimates</span>
+                  <span className="text-[8px] text-slate-400 normal-case font-normal font-sans">Simulated CPC • ACOS • ROAS</span>
                 </div>
               </th>
 
@@ -954,19 +954,19 @@ export default function BidTable({
                           const hasSales = row.sales > 0;
 
                           return (
-                            <div className="flex flex-col items-end gap-0.5">
+                            <div className="flex flex-col items-end gap-0.5" title="Historical data combined with spend elasticity coefficient (e ~ 0.75).">
                               {/* Projected CPC */}
                               <div className="flex items-center gap-1 leading-none">
-                                <span className="text-[9px] text-slate-400">Est. CPC:</span>
+                                <span className="text-[9px] text-slate-400">Sim. CPC:</span>
                                 <span className="font-mono text-slate-700 font-semibold text-[11px]">${projCpc.toFixed(2)}</span>
                               </div>
 
                               {/* Projected ACOS */}
                               <div className="flex items-center gap-1 leading-none">
-                                <span className="text-[9px] text-slate-400">Est. ACOS:</span>
+                                <span className="text-[9px] text-slate-400">Sim. ACOS:</span>
                                 {hasSales ? (
                                   <span className={`font-mono font-bold text-[11px] ${
-                                    projAcos > 0.40 ? "text-rose-600" : (projAcos < 0.20 ? "text-emerald-600" : "text-slate-705")
+                                    projAcos > 0.40 ? "text-rose-600" : (projAcos < 0.20 ? "text-emerald-600" : "text-indigo-650")
                                   }`}>
                                     {(projAcos * 100).toFixed(0)}%
                                   </span>
@@ -977,7 +977,7 @@ export default function BidTable({
 
                               {/* Projected ROAS */}
                               <div className="flex items-center gap-1 leading-none">
-                                <span className="text-[9px] text-slate-400">Est. ROAS:</span>
+                                <span className="text-[9px] text-slate-400">Sim. ROAS:</span>
                                 {hasSales && projSpend > 0 ? (
                                   <span className="font-mono font-bold text-indigo-750 text-[11px]">
                                     {projRoas.toFixed(1)}x

@@ -518,6 +518,62 @@ export default function App() {
                   </p>
                 </div>
 
+                {/* 3b. Match Type & Placement Modifiers */}
+                <div className="space-y-3 pt-3 border-t border-dashed border-slate-100">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block">Bid Modifiers Customizer</span>
+                  
+                  {/* Exact Boost */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-slate-600 font-medium">
+                      <span>Exact Match Boost</span>
+                      <span className="font-mono font-bold text-indigo-700">+{config.exactMatchBoost ?? 10}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={config.exactMatchBoost ?? 10}
+                      onChange={(e) => setConfig(prev => ({ ...prev, exactMatchBoost: Number(e.target.value) }))}
+                      className="w-full accent-indigo-650 cursor-ew-resize h-1 bg-slate-100 rounded-lg appearance-none"
+                    />
+                  </div>
+
+                  {/* Broad Discount */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-slate-600 font-medium font-sans">
+                      <span>Broad/Auto Match Discount</span>
+                      <span className="font-mono font-bold text-rose-700">-{config.broadMatchDiscount ?? 15}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={config.broadMatchDiscount ?? 15}
+                      onChange={(e) => setConfig(prev => ({ ...prev, broadMatchDiscount: Number(e.target.value) }))}
+                      className="w-full accent-rose-600 cursor-ew-resize h-1 bg-slate-100 rounded-lg appearance-none"
+                    />
+                  </div>
+
+                  {/* Top-of-Search Boost */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-slate-600 font-medium">
+                      <span>Top-of-Search Boost</span>
+                      <span className="font-mono font-bold text-emerald-700">+{config.tosPlacementBoost ?? 15}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={config.tosPlacementBoost ?? 15}
+                      onChange={(e) => setConfig(prev => ({ ...prev, tosPlacementBoost: Number(e.target.value) }))}
+                      className="w-full accent-emerald-600 cursor-ew-resize h-1 bg-slate-100 rounded-lg appearance-none"
+                    />
+                  </div>
+                </div>
+
                 {/* 4. Bleeder Limits sliders */}
                 <div className="space-y-3.5 pt-3 border-t border-dashed border-slate-100">
                   <div className="flex justify-between text-xs font-semibold text-slate-755 text-rose-800">
@@ -705,6 +761,23 @@ export default function App() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* 7. Model Context & Engineering Truths (Wes's Critique block) */}
+                <div className="pt-4 border-t border-slate-200 mt-2 space-y-2 select-none">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Methodology & Resolution</span>
+                  <div className="bg-slate-100/80 border border-slate-200 rounded-lg p-3 text-[10px] text-slate-650 leading-relaxed font-semibold">
+                    <p className="mb-2 text-slate-800 font-extrabold flex items-center gap-1.5 select-none text-[10px] uppercase tracking-wider">
+                      <Info className="w-4 h-4 text-slate-500 shrink-0" />
+                      Engineering Model
+                    </p>
+                    <p className="mb-2">
+                      Current bid state is resolved chronologically using the most recent dated record. Historical performance metrics are aggregated across the selected reporting window to reduce single-day volatility.
+                    </p>
+                    <p>
+                      Recommendations are generated using current-state bids combined with aggregated performance data, while projected CPC, ACOS, and ROAS remain model estimates rather than guaranteed outcomes.
+                    </p>
                   </div>
                 </div>
 

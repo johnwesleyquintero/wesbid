@@ -19,7 +19,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       bleederReduction: 35,
       enableV3: true,
       confidenceScale: 90,
-      adaptiveDecay: 10
+      adaptiveDecay: 10,
+      exactMatchBoost: 10,
+      broadMatchDiscount: 15,
+      tosPlacementBoost: 10
     }
   },
   BALANCED: {
@@ -35,7 +38,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       bleederReduction: 25,
       enableV3: true,
       confidenceScale: 75,
-      adaptiveDecay: 15
+      adaptiveDecay: 15,
+      exactMatchBoost: 10,
+      broadMatchDiscount: 15,
+      tosPlacementBoost: 15
     }
   },
   AGGRESSIVE: {
@@ -51,7 +57,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       bleederReduction: 15,
       enableV3: true,
       confidenceScale: 60,
-      adaptiveDecay: 25
+      adaptiveDecay: 25,
+      exactMatchBoost: 15,
+      broadMatchDiscount: 10,
+      tosPlacementBoost: 20
     }
   },
   HARVEST: {
@@ -67,7 +76,10 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
       bleederReduction: 40,
       enableV3: true,
       confidenceScale: 85,
-      adaptiveDecay: 30
+      adaptiveDecay: 30,
+      exactMatchBoost: 5,
+      broadMatchDiscount: 20,
+      tosPlacementBoost: 10
     }
   }
 };
@@ -78,6 +90,11 @@ export const STRATEGY_PRESETS: Record<StrategyPreset, StrategyDefinition> = {
 export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): BidRecommendation {
   const currentBid = row.currentBid || row.cpc || 1.00;
   const cpc = row.cpc > 0 ? row.cpc : currentBid;
+
+  // Retrieve dynamic modifiers from config (or fall back to standard defaults if undefined)
+  const exactMatchBoost = config.exactMatchBoost !== undefined ? config.exactMatchBoost : 10;
+  const broadMatchDiscount = config.broadMatchDiscount !== undefined ? config.broadMatchDiscount : 15;
+  const tosPlacementBoost = config.tosPlacementBoost !== undefined ? config.tosPlacementBoost : 15;
 
   // Establish baseline meta parameters based on Targeting Intent classification (Amazon Modern PPC Meta Strategy)
   let targetAcos = config.targetAcos;
@@ -96,17 +113,17 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
 
   if (isExact) {
     // Exact match targets have high conversion certainty. Elevate Target ACOS (scale focus), lower learning click boundaries, and give more safety slack.
-    targetAcos = config.targetAcos * 1.10; 
+    targetAcos = config.targetAcos * (1 + exactMatchBoost / 100); 
     minClicks = Math.max(5, Math.round(config.minClicks * 0.70)); 
     bleederClicks = Math.round(config.bleederClicks * 1.30); 
     dampening = Math.min(1.0, config.dampening * 1.15); 
-    strategyModifierReason = "(Meta: EXACT Match Priority scaling applied). ";
+    strategyModifierReason = `(Meta: EXACT Match +${exactMatchBoost}% Priority scaling). `;
   } else if (isBroadOrPhrase || isAutoTarget) {
     // Broad/Phrase and Auto matches easily eat up excess click waste. Apply discounted target ACOS and accelerate click budget protection thresholds.
-    targetAcos = config.targetAcos * 0.85; 
+    targetAcos = config.targetAcos * (1 - broadMatchDiscount / 100); 
     minClicks = Math.round(config.minClicks * 1.25); 
     bleederClicks = Math.max(5, Math.round(config.bleederClicks * 0.80)); 
-    strategyModifierReason = "(Meta: Broad/Auto budget waste prevention applied). ";
+    strategyModifierReason = `(Meta: Broad/Auto -${broadMatchDiscount}% budget waste prevention). `;
   } else if (isAsinTarget) {
     // ASIN detail page placements (PAT). Higher impressions, slightly lower CTR on pages. Give slightly shorter learning phase.
     minClicks = Math.max(8, Math.round(config.minClicks * 0.90)); 
@@ -205,10 +222,10 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
     if (row.impressionShare !== undefined && row.impressionShare > 0 && row.impressionShare < 25 && row.acos < (targetAcos / 100) * 0.90) {
       const passesSafetyGate = row.clicks >= 5 && row.orders >= 1;
       if (passesSafetyGate) {
-        suggestedBid = suggestedBid * 1.15; // Secures a 15% bid boost to scale ranking
+        suggestedBid = suggestedBid * (1 + tosPlacementBoost / 100); // Secures configurable placement bid boost
         isTosBoosted = true;
       } else {
-        tosNotes = ` [TOS_GATE_HOLD]: High-margin candidate detected (Aacos ${(row.acos * 100).toFixed(0)}%), but 15% Top-of-Screen Placement Boost held back until conversion reaches 5 clicks and 1 order (current: ${row.clicks} clicks, ${row.orders} orders) for safety.`;
+        tosNotes = ` [TOS_GATE_HOLD]: High-margin candidate detected (Acos ${(row.acos * 100).toFixed(0)}%), but ${tosPlacementBoost}% Top-of-Screen Placement Boost held back until conversion reaches 5 clicks and 1 order (current: ${row.clicks} clicks, ${row.orders} orders) for safety.`;
       }
     }
 
@@ -233,7 +250,7 @@ export function calculateRowBid(row: AmazonPpcRow, config: OptimizerConfig): Bid
     }
 
     if (isTosBoosted && row.impressionShare !== undefined) {
-      reason += ` [PLA_BOOST]: Added 15% Top-of-Search bid boost since search share is critically low (${row.impressionShare.toFixed(1)}%) but ACOS is efficient.`;
+      reason += ` [PLA_BOOST]: Added ${tosPlacementBoost}% Top-of-Search bid boost since search share is critically low (${row.impressionShare.toFixed(1)}%) but ACOS is efficient.`;
     }
 
     if (tosNotes) {

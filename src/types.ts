@@ -60,6 +60,9 @@ export interface OptimizerConfig {
   enableV3?: boolean;       // Enable adaptive memory / learning-phase controls
   confidenceScale?: number; // Adaptive coefficient scaling percent (0-100)
   adaptiveDecay?: number;   // Dynamic decay scale percent (0-100)
+  exactMatchBoost?: number;       // Exact Match Bid Boost % (e.g., 10 for +10%)
+  broadMatchDiscount?: number;    // Broad/Phrase/Auto Match Discount % (e.g., 15 for -15%)
+  tosPlacementBoost?: number;     // Top-of-Search placement boost % (e.g., 15 for +15%)
 }
 
 export type StrategyPreset = "CONSERVATIVE" | "BALANCED" | "AGGRESSIVE" | "HARVEST";
