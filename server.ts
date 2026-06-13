@@ -16,16 +16,14 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "10mb" }));
 
-// Lazy-initialized Gemini API client
-let aiInstance: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  if (!aiInstance) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error("GEMINI_API_KEY environment variable is is not configured. Please supply it via AI Studio Secrets panel.");
-    }
-    aiInstance = new GoogleGenAI({
-      apiKey: key,
+// Lazy-initialized default Gemini API client
+let defaultAiInstance: GoogleGenAI | null = null;
+function getGeminiClient(customApiKey?: string): GoogleGenAI {
+  const activeKey = (customApiKey && customApiKey.trim()) || process.env.GEMINI_API_KEY;
+  
+  if (customApiKey && customApiKey.trim()) {
+    return new GoogleGenAI({
+      apiKey: customApiKey.trim(),
       httpOptions: {
         headers: {
           "User-Agent": "aistudio-build",
@@ -33,7 +31,21 @@ function getGeminiClient(): GoogleGenAI {
       },
     });
   }
-  return aiInstance;
+
+  if (!defaultAiInstance) {
+    if (!activeKey) {
+      throw new Error("GEMINI_API_KEY environment variable is not configured. Please supply it via AI Studio Secrets panel, or store your own free/paid API Key directly in the Co-pilot browser settings.");
+    }
+    defaultAiInstance = new GoogleGenAI({
+      apiKey: activeKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
+  }
+  return defaultAiInstance;
 }
 
 // Health check endpoint
@@ -50,14 +62,15 @@ app.post("/api/copilot", async (req, res) => {
       stats, 
       topBleeders, 
       topStars,
-      totalRows
+      totalRows,
+      userApiKey
     } = req.body;
 
     if (!stats) {
       return res.status(400).json({ error: "Missing PPC dataset metrics in payload" });
     }
 
-    const ai = getGeminiClient();
+    const ai = getGeminiClient(userApiKey);
 
     const systemInstruction = 
       "You are WesBid Lab AI Co-pilot, an elite Amazon Advertising PPC analyst and portfolio strategist. " +

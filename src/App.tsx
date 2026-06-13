@@ -38,9 +38,22 @@ import IntentHarvester from "./components/IntentHarvester";
 
 export default function App() {
   // PPC Data States
-  const [ppcRows, setPpcRows] = useState<AmazonPpcRow[]>([]);
-  const [filename, setFilename] = useState<string>("");
-  const [rawRecordsCount, setRawRecordsCount] = useState<number>(0);
+  const [ppcRows, setPpcRows] = useState<AmazonPpcRow[]>(() => {
+    try {
+      const saved = localStorage.getItem("wesbid_ppc_rows");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn("Could not load ppc_rows from localStorage:", e);
+      return [];
+    }
+  });
+  const [filename, setFilename] = useState<string>(() => {
+    return localStorage.getItem("wesbid_filename") || "";
+  });
+  const [rawRecordsCount, setRawRecordsCount] = useState<number>(() => {
+    const saved = localStorage.getItem("wesbid_raw_count");
+    return saved ? Number(saved) : 0;
+  });
   const [showDedupeAlert, setShowDedupeAlert] = useState<boolean>(true);
 
   // Compute detected report layout type
@@ -51,19 +64,74 @@ export default function App() {
   }, [ppcRows]);
 
   // Preset Strategy State
-  const [activeStrategy, setActiveStrategy] = useState<StrategyPreset>("BALANCED");
+  const [activeStrategy, setActiveStrategy] = useState<StrategyPreset>(() => {
+    return (localStorage.getItem("wesbid_active_strategy") as StrategyPreset) || "BALANCED";
+  });
 
   // Slider Configurations (dynamic, reactive copy of strategy presets)
-  const [config, setConfig] = useState<OptimizerConfig>(STRATEGY_PRESETS.BALANCED.config);
+  const [config, setConfig] = useState<OptimizerConfig>(() => {
+    try {
+      const saved = localStorage.getItem("wesbid_config");
+      return saved ? JSON.parse(saved) : STRATEGY_PRESETS.BALANCED.config;
+    } catch (e) {
+      console.warn("Could not load config from localStorage, falling back to BALANCED:", e);
+      return STRATEGY_PRESETS.BALANCED.config;
+    }
+  });
 
   // Manual User overrides (Maps rowId -> manual suggested bid value)
-  const [overrides, setOverrides] = useState<Record<string, number>>({});
+  const [overrides, setOverrides] = useState<Record<string, number>>((() => {
+    try {
+      const saved = localStorage.getItem("wesbid_overrides");
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      console.warn("Could not load overrides from localStorage:", e);
+      return {};
+    }
+  }));
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES" | "DEDUP">("TABLE");
 
   // Sidebar open/collapse state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Sync state mutations to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("wesbid_ppc_rows", JSON.stringify(ppcRows));
+    } catch (e) {
+      console.error("Failed to sync ppc_rows to localStorage:", e);
+    }
+  }, [ppcRows]);
+
+  useEffect(() => {
+    localStorage.setItem("wesbid_filename", filename);
+  }, [filename]);
+
+  useEffect(() => {
+    localStorage.setItem("wesbid_raw_count", rawRecordsCount.toString());
+  }, [rawRecordsCount]);
+
+  useEffect(() => {
+    localStorage.setItem("wesbid_active_strategy", activeStrategy);
+  }, [activeStrategy]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("wesbid_config", JSON.stringify(config));
+    } catch (e) {
+      console.error("Failed to sync config to localStorage:", e);
+    }
+  }, [config]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("wesbid_overrides", JSON.stringify(overrides));
+    } catch (e) {
+      console.error("Failed to sync overrides to localStorage:", e);
+    }
+  }, [overrides]);
 
   // Auto-collapse sidebar on smaller screens on mount to maximize workspace
   useEffect(() => {
@@ -267,7 +335,7 @@ export default function App() {
       {/* Main layout routing switch */}
       {ppcRows.length === 0 ? (
         /* State A: EMPTY DATASET (Uploader Workspace) */
-        <main className="max-w-4xl mx-auto px-6 py-12">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <UploadDropzone onDataLoaded={handleDataLoaded} />
         </main>
       ) : (

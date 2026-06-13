@@ -3,8 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
-import { Sparkles, FileText, Send, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { 
+  Sparkles, 
+  FileText, 
+  Send, 
+  RefreshCw, 
+  AlertCircle, 
+  CheckCircle2, 
+  Key, 
+  Eye, 
+  EyeOff, 
+  ShieldCheck, 
+  Trash2 
+} from "lucide-react";
 import { AmazonPpcRow, BidRecommendation, OptimizerConfig } from "../types";
 
 interface AssistantInsightProps {
@@ -26,6 +38,37 @@ export default function AssistantInsight({
   const [stepIndex, setStepIndex] = useState(0);
   const [reportText, setReportText] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+
+  // Custom user API key states
+  const [userApiKeyInput, setUserApiKeyInput] = useState<string>("");
+  const [savedApiKey, setSavedApiKey] = useState<string>("");
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+
+  // Load API key from local storage on mount
+  useEffect(() => {
+    const key = localStorage.getItem("ppc_copilot_user_key") || "";
+    setUserApiKeyInput(key);
+    setSavedApiKey(key);
+  }, []);
+
+  const handleSaveKey = () => {
+    const keyToSave = userApiKeyInput.trim();
+    localStorage.setItem("ppc_copilot_user_key", keyToSave);
+    setSavedApiKey(keyToSave);
+    setSaveSuccess(true);
+    setTimeout(() => {
+      setSaveSuccess(false);
+    }, 4000);
+  };
+
+  const handleClearKey = () => {
+    localStorage.removeItem("ppc_copilot_user_key");
+    setUserApiKeyInput("");
+    setSavedApiKey("");
+    setSaveSuccess(false);
+  };
 
   const steps = [
     "Compiling active PPC targeting data...",
@@ -73,7 +116,8 @@ export default function AssistantInsight({
           stats,
           topBleeders: bleeders,
           topStars: stars,
-          totalRows: rows.length
+          totalRows: rows.length,
+          userApiKey: savedApiKey
         })
       });
 
@@ -194,6 +238,85 @@ export default function AssistantInsight({
             <RefreshCw className="w-3.5 h-3.5" />
             Recalculate
           </button>
+        )}
+      </div>
+
+      {/* Dynamic API Configuration Control Panel */}
+      <div className="mb-6 bg-slate-50 rounded-xl p-4 border border-slate-200/60 text-xs shadow-2xs">
+        <div 
+          className="flex items-center justify-between cursor-pointer select-none" 
+          onClick={() => setShowSettings(!showSettings)}
+        >
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <Key className="w-4 h-4 text-slate-500" />
+            <span className="font-semibold text-slate-700">Custom Gemini API Key</span>
+            {savedApiKey ? (
+              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold leading-none">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Stored in Browser
+              </span>
+            ) : (
+              <span className="inline-flex items-center bg-slate-200 text-slate-605 px-2.5 py-0.5 rounded-full text-[10px] font-bold leading-none">
+                Workspace Defaults Active
+              </span>
+            )}
+          </div>
+          <button className="text-indigo-650 hover:text-indigo-850 font-bold text-[11px] uppercase tracking-wider transition">
+            {showSettings ? "Close Settings" : "Configure Key"}
+          </button>
+        </div>
+        
+        {showSettings && (
+          <div className="mt-3.5 space-y-3.5 border-t border-slate-200/60 pt-3.5 transition-all">
+            <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
+              By default, the optimizer leverages our Workspace default model configurations. To bypass limitations or leverage your premium tier, you can store your own free or paid <strong className="text-slate-700">Gemini API Key</strong> locally inside your browser's secure sandboxed storage. It is only held on your device and is securely passed on-demand for co-pilot workflows.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="relative flex-1">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  placeholder="Paste your Gemini API Key here (AIzaSy...)"
+                  value={userApiKeyInput}
+                  onChange={(e) => setUserApiKeyInput(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 font-mono text-xs focus:ring-1 focus:ring-slate-400 focus:outline-none focus:border-slate-400 shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition"
+                  title={showApiKey ? "Hide Key" : "Show Key"}
+                >
+                  {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={handleSaveKey}
+                  disabled={!userApiKeyInput.trim()}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 text-white disabled:text-slate-400 rounded-lg text-xs font-semibold font-sans transition cursor-pointer select-none"
+                >
+                  Save Key
+                </button>
+                {savedApiKey && (
+                  <button
+                    onClick={handleClearKey}
+                    className="p-2 border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                    title="Remove custom key from local storage"
+                  >
+                    <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {saveSuccess && (
+              <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1.5 animate-fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                Custom API key updated and active! It will be securely passed server-side for co-pilot workloads.
+              </p>
+            )}
+          </div>
         )}
       </div>
 
