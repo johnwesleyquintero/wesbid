@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Compass,
-  FolderSync
+  FolderSync,
+  Calculator
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation, OptimizerConfig, StrategyPreset, StrategyDefinition } from "./types";
 import { STRATEGY_PRESETS, calculateRowBid, calculateScenarioImpact } from "./lib/bidEngine";
@@ -35,6 +36,7 @@ import SummaryPanel from "./components/SummaryPanel";
 import AssistantInsight from "./components/AssistantInsight";
 import NicheDiscovery from "./components/NicheDiscovery";
 import IntentHarvester from "./components/IntentHarvester";
+import ManualCalculator from "./components/ManualCalculator";
 
 export default function App() {
   // PPC Data States
@@ -91,7 +93,7 @@ export default function App() {
   }));
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES" | "DEDUP">("TABLE");
+  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES" | "DEDUP" | "CALCULATOR">("TABLE");
 
   // Sidebar open/collapse state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -394,9 +396,58 @@ export default function App() {
 
       {/* Main layout routing switch */}
       {ppcRows.length === 0 ? (
-        /* State A: EMPTY DATASET (Uploader Workspace) */
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <UploadDropzone onDataLoaded={handleDataLoaded} />
+        /* State A: EMPTY DATASET (Uploader or Standalone Calculator) */
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-fade-in" id="empty-state-workspace">
+          
+          {/* Quick Selection Tab Header */}
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Welcome to WesBid Optimizer Lab</h2>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-lg font-medium leading-relaxed">
+              Upload raw Amazon PPC search term or targeting reports to simulate overall catalog impacts, or switch to the manual calculator for instant target bid mathematical breakdown.
+            </p>
+            
+            <div className="inline-flex p-1 bg-slate-200/60 rounded-xl border border-slate-250 select-none">
+              <button
+                onClick={() => setActiveTab("TABLE")}
+                className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition select-none ${
+                  activeTab !== "CALCULATOR"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Upload Report Sheets</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("CALCULATOR")}
+                className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition select-none ${
+                  activeTab === "CALCULATOR"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                <span>Instant Bid Calculator</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            {activeTab === "CALCULATOR" ? (
+              <div className="max-w-6xl mx-auto space-y-4">
+                <div className="bg-indigo-50/60 border border-indigo-150 rounded-xl p-4 text-xs font-semibold text-indigo-805 leading-relaxed text-indigo-800 flex items-start gap-2.5 mb-2 shadow-3xs">
+                  <Info className="w-4.5 h-4.5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-extrabold block mb-0.5 text-indigo-950">Standalone calculator active:</span>
+                    Showing direct calculations in Sandbox mode. Upload an Amazon Advertising Report sheet to overlay this logic on raw live metrics and generate comprehensive bulk sheet imports!
+                  </div>
+                </div>
+                <ManualCalculator />
+              </div>
+            ) : (
+              <UploadDropzone onDataLoaded={handleDataLoaded} />
+            )}
+          </div>
         </main>
       ) : (
         /* State B: ACTIVE SIMULATION WORKSPACE */
@@ -942,6 +993,18 @@ export default function App() {
                         <FolderSync className="w-3.5 h-3.5 text-emerald-600" />
                         Intent Dedup Filter
                       </button>
+
+                      <button
+                        onClick={() => setActiveTab("CALCULATOR")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap ${
+                          activeTab === "CALCULATOR" 
+                            ? "bg-white text-slate-900 shadow-xs font-bold font-sans" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <Calculator className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+                        Manual Bid Calculator
+                      </button>
                     </div>
                   </div>
 
@@ -1010,6 +1073,10 @@ export default function App() {
 
                 {activeTab === "DEDUP" && (
                   <IntentHarvester rows={ppcRows} />
+                )}
+
+                {activeTab === "CALCULATOR" && (
+                  <ManualCalculator />
                 )}
               </div>
 
