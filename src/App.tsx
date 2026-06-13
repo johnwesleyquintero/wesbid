@@ -350,41 +350,44 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans" id="app-container">
       {/* Prime Header navigation block */}
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-6 py-4 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-2.5">
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md select-none">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <img 
             src="/favicon_1781186553198.jpg" 
             alt="WesBid Logo" 
-            className="h-9 w-9 rounded-lg object-cover border border-slate-700/60 shadow-xs"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg object-cover border border-slate-700/60 shadow-xs"
             referrerPolicy="no-referrer"
           />
           <div>
-            <h1 className="text-sm font-bold text-white tracking-tight leading-none">WesBid Optimizer</h1>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">Amazon PPC Bidding & Simulation Lab</p>
+            <h1 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-none">WesBid Optimizer</h1>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium tracking-wide mt-1">Amazon PPC Bidding & Simulation Lab</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
           {ppcRows.length > 0 && (
-            <span className="text-[10px] bg-slate-800 text-slate-300 font-semibold px-2.5 py-1 rounded-md border border-slate-700 select-none truncate max-w-44 md:max-w-64">
-              📄 {filename}
-            </span>
+            <div className="flex items-center gap-1.5 bg-slate-800 text-slate-300 font-semibold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md border border-slate-700 select-none text-[9px] sm:text-[10px] truncate max-w-[120px] xs:max-w-[160px] sm:max-w-44 md:max-w-64">
+              <span className="text-slate-400">📄</span>
+              <span className="truncate font-mono">{filename}</span>
+            </div>
           )}
           {ppcRows.length > 0 && (
             <button
               onClick={leaveDataset}
-              className="p-1 px-2.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-md text-[10px] font-semibold border border-transparent hover:border-slate-700 transition cursor-pointer"
-              title="Close current file"
+              className="flex items-center gap-1 sm:gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-bold cursor-pointer transition shadow-xs shrink-0"
+              title="Close current file and return to upload"
             >
-              Clear File
+              <X className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Clear File</span>
             </button>
           )}
           <button
             onClick={hardResetApp}
-            className="p-1 px-2.5 bg-red-950/20 hover:bg-red-800/80 text-red-200 hover:text-white rounded-md text-[10px] font-semibold border border-red-900/40 hover:border-red-600 transition cursor-pointer"
+            className="flex items-center gap-1 sm:gap-1.5 bg-rose-950/20 hover:bg-rose-900/40 text-rose-200 hover:text-white border border-rose-900/40 hover:border-rose-700/60 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-bold cursor-pointer transition shadow-xs shrink-0"
             title="Factory reset all data, overrides, and formula adjustments"
           >
-            Reset Sandbox
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Sandbox</span>
           </button>
         </div>
       </header>
