@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   Calculator, 
   Plus, 
@@ -22,18 +22,57 @@ interface ManualRow {
 }
 
 export default function ManualCalculator() {
-  // Playground single-row states
-  const [playCurrentAcos, setPlayCurrentAcos] = useState<number>(109.1);
-  const [playCpc, setPlayCpc] = useState<number>(2.15);
-  const [playTargetAcos, setPlayTargetAcos] = useState<number>(50.0);
+  // Playground single-row states with localStorage persistence
+  const [playCurrentAcos, setPlayCurrentAcos] = useState<number>(() => {
+    const saved = localStorage.getItem("wesbid_manual_play_current_acos");
+    return saved !== null ? parseFloat(saved) : 109.1;
+  });
+
+  const [playCpc, setPlayCpc] = useState<number>(() => {
+    const saved = localStorage.getItem("wesbid_manual_play_cpc");
+    return saved !== null ? parseFloat(saved) : 2.15;
+  });
+
+  const [playTargetAcos, setPlayTargetAcos] = useState<number>(() => {
+    const saved = localStorage.getItem("wesbid_manual_play_target_acos");
+    return saved !== null ? parseFloat(saved) : 50.0;
+  });
+
   const [copiedFormula, setCopiedFormula] = useState(false);
 
-  // Scratchpad table list of rows
-  const [scratchpadRows, setScratchpadRows] = useState<ManualRow[]>([
-    { id: "1", label: "Example Target (Underperforming Exact)", currentAcos: 109.1, cpc: 2.15, targetAcos: 50.0 },
-    { id: "2", label: "Example Target (Efficient Broad)", currentAcos: 32.5, cpc: 1.10, targetAcos: 45.0 },
-    { id: "3", label: "Example Target (Ultra high margin)", currentAcos: 15.0, cpc: 0.85, targetAcos: 40.0 },
-  ]);
+  // Scratchpad table list of rows with localStorage persistence
+  const [scratchpadRows, setScratchpadRows] = useState<ManualRow[]>(() => {
+    const saved = localStorage.getItem("wesbid_manual_scratchpad_rows");
+    if (saved !== null) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback below
+      }
+    }
+    return [
+      { id: "1", label: "Example Target (Underperforming Exact)", currentAcos: 109.1, cpc: 2.15, targetAcos: 50.0 },
+      { id: "2", label: "Example Target (Efficient Broad)", currentAcos: 32.5, cpc: 1.10, targetAcos: 45.0 },
+      { id: "3", label: "Example Target (Ultra high margin)", currentAcos: 15.0, cpc: 0.85, targetAcos: 40.0 },
+    ];
+  });
+
+  // Keep state in sync with localStorage
+  useEffect(() => {
+    localStorage.setItem("wesbid_manual_play_current_acos", playCurrentAcos.toString());
+  }, [playCurrentAcos]);
+
+  useEffect(() => {
+    localStorage.setItem("wesbid_manual_play_cpc", playCpc.toString());
+  }, [playCpc]);
+
+  useEffect(() => {
+    localStorage.setItem("wesbid_manual_play_target_acos", playTargetAcos.toString());
+  }, [playTargetAcos]);
+
+  useEffect(() => {
+    localStorage.setItem("wesbid_manual_scratchpad_rows", JSON.stringify(scratchpadRows));
+  }, [scratchpadRows]);
 
   // Scratchpad quick add states
   const [newLabel, setNewLabel] = useState("");
