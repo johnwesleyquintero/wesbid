@@ -10,7 +10,7 @@ Designed around a **Clean Minimalism** design philosophy, it features a highly p
 
 The interface is built to prioritize mathematical data density and workflow flow:
 - **Minimalist Palette**: Utilizes soft off-whites (`#f8fafc`), deep charcoal slate text (`#0f172a`), royal blue brand highlight accents (`#2563eb`), and clean, semantic action badges (Scale 🟢, Reduce 🔴, Hold 🟡).
-- **Deskstop-First Precision**: Formatted around a balanced single-page cockpit with fluid grids, ensuring full responsiveness from wide monitors down to multi-column setups.
+- **Desktop-First Precision**: Formatted around a balanced single-page cockpit with fluid grids, ensuring full responsiveness from wide monitors down to multi-column setups.
 - **Intentional Spacing**: Generous negative margins, clear visual hierarchy, thin refined borders (`#e2e8f0`), and custom-styled range sliders that map variables responsively without visual clutter.
 
 ---
@@ -32,31 +32,53 @@ $$\text{Recommended Target Bid} = \text{Baseline CPC} \times \frac{\text{Target 
   - **Broad/Auto Protection**: Controls automated search leakage by tightening click thresholds and accelerating waste penalties.
   - **ASIN (PAT) Placements**: Custom parameter bounds adjusted dynamically for product detail pages.
 
-### 2. Live Baselines & Micro Overrides
+### 2. ⭐ Top Performers Quick-Filter & Bid Boost
+An advanced, automated targeting filter designed to isolate and supercharge high-velocity keywords:
+- **Automatic ROAS Extraction**: Scans the active dataset and instantaneously isolates the **top 10% of keyword targets based on ROAS** (Return on Ad Spend).
+- **High-Impact Bid Scaling**: Bypasses baseline thresholds and automatically applies a tailored **+20% bid modifier** to aggressively lock down premium Top-Of-Search impressions, driving maximum market share.
+- **Micro-Badges**: Highlighted with custom Sparkle indicators in the active table view for fast identification.
+
+### 3. 🎛️ Advanced Metric Slicers & Filters
+Allows portfolio managers to execute deep surgical analyses with multiple concurrent filter groups:
+- **Target Match Type Selectors**: Instantly narrow focus down to `Exact`, `Phrase`, `Broad`, or `Expression / Auto` match types.
+- **Dual-Range Continuous Sliders**:
+  - **Min Spend Slider**: Exclude low-spend test keywords to clean up high-value targets.
+  - **Min Clicks Slider**: Filter out keyword noise with low click-traffic significance.
+- **Performance Threshold Flags**:
+  - **Bleeder Clicks with 0 Sales**: Fast-audit target leakage (clicks > 0 and 0 orders) to implement immediate safety holds.
+  - **Star Converters (CVR ≥ 15%)**: Instantly crop elite-ranking keywords with high conversion vectors.
+
+### 4. 📋 Live Tab-Delimited Clipboard Mirroring
+Bypass clunky file downloads with instant spreadsheet interoperability:
+- **One-Click Quick Copy**: Copies all currently filtered and sorted keyword rows into the system clipboard.
+- **Exact Tab-Delimited Format**: Prefixes headers and columns precisely to support immediate, zero-formatting **Paste (`Ctrl+V`) directly into Microsoft Excel, Google Sheets, or Seller Central** bulk sheet templates.
+
+### 5. Live Baselines & Micro Overrides
 - **Custom "Current Bid" Ingest**: Operators can manual-input custom baseline bids directly in the table to align the model with real-time live Seller Central Console configurations instantly.
 - **Active Human Micro-steps**: Double-click or override any keyword directly to override the computer recommendations.
 - **Bulk Action Drawer**: Multi-select row checklist targets to increase/decrease bids by specific percentages, or bulk-set hard scale/reduction forces.
 
-### 3. Search Term Granularity & Negative Harvester
+### 6. Search Term Granularity & Negative Harvester
 While legacy tools guess, WesBid parses underlying customer search queries inside targeting branches and processes them under three intent-confidence tiers:
 - **🔍 Observing Phase** (1–2 clicks, 0 orders): Passive evaluation; blocks premature negative flagging.
 - **⚠️ Weak Waste Signal** (3–5 clicks, 0 orders): Flags keyword as a weak signal, advising manual monitoring.
 - **🚨 Hard Negative Candidate** (6+ clicks, 0 orders): Flags critical leakage. Recommends adding as Negative Exact in Seller Central to instantly cut bleeders.
 
-### 4. Market Intelligence & Niche Explorer v1
+### 7. Market Intelligence & Niche Explorer v1
 Bypasses the fragile "Keyword-to-Single-ASIN" PPC trap. Supports the sophisticated Amazon-native targeting abstraction:
 $$\text{Shopper Intent} \longrightarrow \text{Niche Grouping} \longrightarrow \text{ASIN Competitor Clusters} \longrightarrow \text{Targeting Set Injection}$$
 
-- **Query Token Clustering Engine**: Scans underlying customer search queries to dynamically calculate word token recurrences, agruping similar behaviors into localized macro-niche folders.
+- **Query Token Clustering Engine**: Scans underlying customer search queries to dynamically calculate word token recurrences, grouping similar behaviors into localized macro-niche folders.
 - **Live Amazon Validation Integration**: Directly provides high-value search shortcuts so operators can trigger direct validation searches on Amazon with a single click, identifying top competitor vulnerabilities (poor ratings, premium pricing deltas, low-quality setups).
 - **Target Cluster Sandbox Ingest**: Formulates structured campaigns featuring custom strategic multipliers (Conquest / Defense / Harvest models) based on manually verified competitor listing ASIN inputs.
 
-### 5. Analytics Delta & Visualizers
+### 8. Analytics Delta & Visualizers
 - **Simulated Spend Elasticity**: Real-time estimates of incoming budget shifts, variance percentages, and average recommendations.
 - **Area-Area Distribution Charts**: Built with standard fully responsive Recharts displaying current vs. recommended bid distribution to easily spot anomalies.
 
-### 6. WesBid Co-pilot AI Memo
+### 9. WesBid Co-pilot AI Memo
 - Powered by a safe full-stack server proxying **Gemini API** requests securely.
+- **Parse-Resilient Safe Extraction**: Augmented with robust regex-slicing error handlers that rescue valid JSON objects out of dirty response outputs, preventing unexpected crashes due to network gateway warnings or prefixing.
 - Diagnoses structural inefficiencies, audits top star-performers, and structures localized actionable checklists to coordinate manual imports.
 
 ---
@@ -84,4 +106,4 @@ Required columns mapped automatically:
 - **Styling Utility**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Charts Engine**: [Recharts](https://recharts.org/)
-- **Full-Stack Core**: Express Server proxying server-side LLM diagnostic generation.
+- **Full-Stack Core**: Express Server with pre-compiled transpiled modules handling LLM diagnostic requests securely.
