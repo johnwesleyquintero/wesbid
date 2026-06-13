@@ -19,6 +19,9 @@ export interface AmazonPpcRow {
   acos: number; // calculated as spend / sales, or parsed from report
   cvr: number; // orders / clicks
   currentBid?: number; // optionally parsed from report
+  suggestedBidLow?: number; // native suggested bid low from Amazon
+  suggestedBidMedian?: number; // native suggested bid median/recommended from Amazon
+  suggestedBidHigh?: number; // native suggested bid high from Amazon
   impressionShare?: number; // Top-of-search Impression Share percent
   searchTerms?: {
     term: string;

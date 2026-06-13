@@ -13,6 +13,19 @@ function normalizeHeader(header: string): string {
 }
 
 /**
+ * Standardizes match type string cells.
+ */
+function sanitizeMatchType(raw: string): string {
+  if (!raw) return "-";
+  const lower = raw.toLowerCase().trim();
+  if (lower.includes("exact")) return "Exact";
+  if (lower.includes("phrase")) return "Phrase";
+  if (lower.includes("broad")) return "Broad";
+  if (lower.includes("auto")) return "Auto";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/**
  * Standardizes a string cell into a clean float value.
  */
 function parseNumeric(val: string): number {
@@ -72,20 +85,25 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
     return -1;
   };
 
-  const idxCampaign = getIndex(["Campaign", "Campaign Name", "campaign"]);
-  const idxAdGroup = getIndex(["Ad Group", "Ad Group Name", "adgroup", "ad groups"]);
-  const idxTargeting = getIndex(["Keyword", "Targeting", "Keyword or product targeting", "target"]);
+  const idxCampaign = getIndex(["Campaign", "Campaign Name", "campaign", "Campaign name"]);
+  const idxAdGroup = getIndex(["Ad Group", "Ad Group Name", "adgroup", "ad groups", "Ad group name"]);
+  const idxTargeting = getIndex(["Keyword", "Targeting", "Keyword or product targeting", "target", "Targets", "targets"]);
   const idxSearchTerm = getIndex(["Customer Search Term", "Search Term", "searchTerm", "customerSearchTerm", "term"]);
-  const idxMatchType = getIndex(["Match Type", "Matchtype", "match"]);
+  const idxMatchType = getIndex(["Match Type", "Matchtype", "match", "Targeting Type", "targetingtype", "Targeting type"]);
   const idxImpressions = getIndex(["Impressions", "Impr", "impr", "impression"]);
   const idxClicks = getIndex(["Clicks", "clicks", "clickcount"]);
-  const idxSpend = getIndex(["Spend", "spend", "cost", "total spend"]);
-  const idxSales = getIndex(["Sales", "Total Sales", "7 Day Total Sales", "7-day total sales", "total sales", "revenue", "sales volume", "7 day total sales"]);
-  const idxOrders = getIndex(["Orders", "Total Orders", "7 Day Total Orders", "7-day total orders", "total orders", "purchases", "order count", "7 day total orders (#)"]);
-  const idxCpc = getIndex(["CPC", "Cost Per Click", "Cost per click (CPC)", "cpc"]);
-  const idxBid = getIndex(["Bid", "Current Bid", "Max Bid", "Keyword Bid", "bid", "ad group bid"]);
+  const idxSpend = getIndex(["Spend", "spend", "cost", "total spend", "Total cost", "Total cost (converted)", "totalcost", "totalcostconverted"]);
+  const idxSales = getIndex(["Sales", "Total Sales", "7 Day Total Sales", "7-day total sales", "total sales", "revenue", "sales volume", "7 day total sales", "Sales (converted)", "salesconverted"]);
+  const idxOrders = getIndex(["Orders", "Total Orders", "7 Day Total Orders", "7-day total orders", "total orders", "purchases", "order count", "7 day total orders (#)", "Purchases", "purchases"]);
+  const idxCpc = getIndex(["CPC", "Cost Per Click", "Cost per click (CPC)", "cpc", "CPC (converted)", "cpcconverted"]);
+  const idxBid = getIndex(["Bid", "Current Bid", "Max Bid", "Keyword Bid", "bid", "ad group bid", "Target bid", "Target bid (converted)", "targetbid", "targetbidconverted"]);
   const idxImpressionShare = getIndex(["Top-of-search Impression Share", "Top of Search Impression Share", "Impression Share", "impression share", "topofsearchimpressionshare", "top of search impression share"]);
   const idxDate = getIndex(["Date", "Start Date", "End Date", "Day", "Reporting Date", "Posting Date", "date", "day", "startdate"]);
+  
+  // Amazon Native Recommended Bid ranges
+  const idxSuggLow = getIndex(["Suggested bid (low)", "Suggested bid (low)(converted)", "suggestedbidlow", "lowbid"]);
+  const idxSuggMedian = getIndex(["Suggested bid (median)", "Suggested bid (median)(converted)", "suggestedbidmedian", "medianbid"]);
+  const idxSuggHigh = getIndex(["Suggested bid (high)", "Suggested bid (high)(converted)", "suggestedbidhigh", "highbid"]);
 
   const uniqueRowsMap = new Map<string, {
     campaign: string;
@@ -98,6 +116,9 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
     sales: number;
     orders: number;
     bids: { bid: number; date: number; index: number }[];
+    suggLows: { bid: number; date: number; index: number }[];
+    suggMedians: { bid: number; date: number; index: number }[];
+    suggHighs: { bid: number; date: number; index: number }[];
     cpcs: number[];
     impressionShares: number[];
     searchTerms: Map<string, {
@@ -131,7 +152,7 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       targeting = customerSearchTerm;
     }
     
-    const matchType = idxMatchType !== -1 && cells[idxMatchType] ? cells[idxMatchType].trim() : "-";
+    const matchType = idxMatchType !== -1 && cells[idxMatchType] ? sanitizeMatchType(cells[idxMatchType]) : "-";
     const impressions = idxImpressions !== -1 ? parseNumeric(cells[idxImpressions]) : 0;
     const clicks = idxClicks !== -1 ? parseNumeric(cells[idxClicks]) : 0;
     const spend = idxSpend !== -1 ? parseNumeric(cells[idxSpend]) : 0;
@@ -151,6 +172,23 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
     if (idxBid !== -1 && cells[idxBid]) {
       const bVal = parseNumeric(cells[idxBid]);
       if (bVal > 0) currentBid = bVal;
+    }
+
+    // Optional parsed native recommended bids
+    let sugLow: number | undefined = undefined;
+    if (idxSuggLow !== -1 && cells[idxSuggLow]) {
+      const v = parseNumeric(cells[idxSuggLow]);
+      if (v > 0) sugLow = v;
+    }
+    let sugMed: number | undefined = undefined;
+    if (idxSuggMedian !== -1 && cells[idxSuggMedian]) {
+      const v = parseNumeric(cells[idxSuggMedian]);
+      if (v > 0) sugMed = v;
+    }
+    let sugHigh: number | undefined = undefined;
+    if (idxSuggHigh !== -1 && cells[idxSuggHigh]) {
+      const v = parseNumeric(cells[idxSuggHigh]);
+      if (v > 0) sugHigh = v;
     }
 
     // Parse the date of the record if available to resolve the bid chronologically
@@ -199,6 +237,9 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
         sales,
         orders,
         bids: currentBid !== undefined ? [{ bid: currentBid, date: rowDate, index: i }] : [],
+        suggLows: sugLow !== undefined ? [{ bid: sugLow, date: rowDate, index: i }] : [],
+        suggMedians: sugMed !== undefined ? [{ bid: sugMed, date: rowDate, index: i }] : [],
+        suggHighs: sugHigh !== undefined ? [{ bid: sugHigh, date: rowDate, index: i }] : [],
         cpcs: cpc > 0 ? [cpc] : [],
         impressionShares: impressionShare !== undefined ? [impressionShare] : [],
         searchTerms: termsMap
@@ -211,6 +252,15 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       existing.orders += orders;
       if (currentBid !== undefined) {
         existing.bids.push({ bid: currentBid, date: rowDate, index: i });
+      }
+      if (sugLow !== undefined) {
+        existing.suggLows.push({ bid: sugLow, date: rowDate, index: i });
+      }
+      if (sugMed !== undefined) {
+        existing.suggMedians.push({ bid: sugMed, date: rowDate, index: i });
+      }
+      if (sugHigh !== undefined) {
+        existing.suggHighs.push({ bid: sugHigh, date: rowDate, index: i });
       }
       if (cpc > 0) {
         existing.cpcs.push(cpc);
@@ -267,17 +317,22 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
 
     const acos = sales > 0 ? spend / sales : 0;
 
-    // Preferred Bid: Latest active chronologically wins!
-    let bid: number | undefined = undefined;
-    if (data.bids.length > 0) {
-      const sortedBids = [...data.bids].sort((a, b) => {
+    const resolveBids = (items: { bid: number; date: number; index: number }[]) => {
+      if (items.length === 0) return undefined;
+      const sorted = [...items].sort((a, b) => {
         if (a.date !== b.date) {
           return a.date - b.date;
         }
         return a.index - b.index;
       });
-      bid = sortedBids[sortedBids.length - 1].bid;
-    }
+      return sorted[sorted.length - 1].bid;
+    };
+
+    // Preferred Bid: Latest active chronologically wins!
+    const bid = resolveBids(data.bids);
+    const sLow = resolveBids(data.suggLows);
+    const sMedian = resolveBids(data.suggMedians);
+    const sHigh = resolveBids(data.suggHighs);
 
     // Average Top-of-Search Impression share
     let resolvedImpShare: number | undefined = undefined;
@@ -314,6 +369,9 @@ export function parseAmazonReport(rawText: string): AmazonPpcRow[] {
       acos,
       cvr,
       currentBid: bid,
+      suggestedBidLow: sLow,
+      suggestedBidMedian: sMedian,
+      suggestedBidHigh: sHigh,
       impressionShare: resolvedImpShare,
       searchTerms: searchTermsArr
     });

@@ -923,6 +923,23 @@ export default function BidTable({
                             />
                           </div>
                         </div>
+                        {row.suggestedBidMedian !== undefined && (
+                          <div className="text-[9px] text-slate-400 text-right mt-1.5 leading-tight font-medium select-none">
+                            <span className="block text-slate-400 font-sans font-semibold text-[8px] uppercase tracking-wider mb-0.5">Amazon Recommended:</span>
+                            <button
+                              onClick={() => onBidOverride(row.id, row.suggestedBidMedian!)}
+                              className="inline-flex items-center px-1.5 py-0.5 bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-900 font-mono font-extrabold rounded-md border border-indigo-100 text-[10px] transition cursor-pointer"
+                              title="Click to instantly auto-override and apply Amazon's median recommended bid"
+                            >
+                              ${row.suggestedBidMedian.toFixed(2)}
+                            </button>
+                            {row.suggestedBidLow !== undefined && row.suggestedBidHigh !== undefined && (
+                              <span className="block text-[8px] text-slate-400 mt-1 font-mono font-medium">
+                                low ${row.suggestedBidLow.toFixed(2)} • high ${row.suggestedBidHigh.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Projected Impact column */}
