@@ -577,11 +577,11 @@ export default function BidTable({
       )}
 
       {/* Main Responsive Grid Table */}
-      <div className="overflow-x-auto shadow-sm border border-slate-200/80 rounded-xl bg-white">
+      <div className="overflow-x-auto overflow-y-auto max-h-[620px] shadow-sm border border-slate-200/80 rounded-xl bg-white relative scrollbar-thin">
         <table className="w-full min-w-[1250px] text-left border-collapse" id="ppc-data-table">
           <thead>
             <tr className="bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-              <th className="p-4 w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-20 bg-slate-50 border-r border-slate-100">
+              <th className="p-4 w-12 min-w-[48px] max-w-[48px] text-center sticky top-0 left-0 z-30 bg-slate-50 border-r border-slate-100 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
                 <input
                   type="checkbox"
                   checked={isAllSelectedOnPage}
@@ -591,7 +591,7 @@ export default function BidTable({
               </th>
               
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors sticky left-[48px] z-20 bg-slate-50 border-r border-slate-200 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.08)] min-w-[280px] sm:min-w-[340px]"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors sticky top-0 left-[48px] z-30 bg-slate-50 border-r border-slate-200 border-b border-slate-200 shadow-[4px_1px_10px_-4px_rgba(0,0,0,0.08)] min-w-[280px] sm:min-w-[340px]"
                 onClick={() => handleSort("targeting")}
               >
                 <div className="flex items-center gap-1">
@@ -601,7 +601,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("clicks")}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -611,7 +611,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right bg-emerald-50/10 text-emerald-950"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 text-emerald-950 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("orders")}
                 title="Total conversion purchases / orders for this targeting"
               >
@@ -622,7 +622,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right bg-emerald-50/5 text-emerald-900"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 text-emerald-900 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("cvr")}
                 title="Conversion Rate (Orders / Clicks)"
               >
@@ -633,7 +633,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("ctr")}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -643,7 +643,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("cpc")}
                 title="Historical average Cost-Per-Click"
               >
@@ -654,7 +654,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("spend")}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -664,7 +664,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("sales")}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -674,7 +674,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("acos")}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -684,7 +684,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right cursor-help"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right cursor-help sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("currentBid")}
                 title="Current bid parsed (or fallback to average CPC if bid row empty)"
               >
@@ -695,7 +695,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right text-brand bg-brand/[0.03]"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right sticky top-0 z-20 bg-slate-50 text-brand border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("suggestedBid")}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -704,7 +704,7 @@ export default function BidTable({
                 </div>
               </th>
 
-              <th className="p-4 text-right bg-violet-50/20 text-indigo-900 border-l border-slate-100 w-44" title="Simulated CPC, ACOS, and ROAS using historical ad spend elasticity and conversion model assumptions. Not a performance guarantee.">
+              <th className="p-4 text-right text-indigo-900 border-l border-slate-100 w-44 sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]" title="Simulated CPC, ACOS, and ROAS using historical ad spend elasticity and conversion model assumptions. Not a performance guarantee.">
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] tracking-wider uppercase font-bold">Model Estimates</span>
                   <span className="text-[8px] text-slate-400 normal-case font-normal font-sans">Simulated CPC • ACOS • ROAS</span>
@@ -712,7 +712,7 @@ export default function BidTable({
               </th>
 
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-center"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-center sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]"
                 onClick={() => handleSort("action")}
               >
                 <div className="flex items-center justify-center gap-1">
