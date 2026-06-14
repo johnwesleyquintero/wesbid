@@ -10,8 +10,9 @@ Designed around a **Clean Minimalism** design philosophy, it features a highly p
 
 The interface is built to prioritize mathematical data density and workflow flow:
 - **Minimalist Palette**: Utilizes soft off-whites (`#f8fafc`), deep charcoal slate text (`#0f172a`), royal blue brand highlight accents (`#2563eb`), and clean, semantic action badges (Scale 🟢, Reduce 🔴, Hold 🟡).
-- **Desktop-First Precision**: Formatted around a balanced single-page cockpit with fluid grids, ensuring full responsiveness from wide monitors down to multi-column setups.
-- **Intentional Spacing**: Generous negative margins, clear visual hierarchy, thin refined borders (`#e2e8f0`), and custom-styled range sliders that map variables responsively without visual clutter.
+- **Desktop-First Precision & Layout**: Formatted around a balanced single-page cockpit with fluid grids, ensuring full responsiveness from wide monitors down to multi-column setups.
+- **Amazon Ads Console Freeze/Sticky Columns**: Checkboxes (`sticky left-0`) and Targeting/Campaign parameters (`sticky left-[48px]`) are locked/pinned with custom drop-shadow borders, enabling seamless horizontal sliding across performance metrics just like the seller console.
+- **Smooth Viewport Vertical Scrolling**: Encased in a `max-h-[620px]` container with custom sleek scrollbars (`scrollbar-thin`) to allow fast, eye-friendly vertical scrolling of high-count keyword datasets without losing sight of headers or locked targeting properties.
 
 ---
 
@@ -38,7 +39,12 @@ An advanced, automated targeting filter designed to isolate and supercharge high
 - **High-Impact Bid Scaling**: Bypasses baseline thresholds and automatically applies a tailored **+20% bid modifier** to aggressively lock down premium Top-Of-Search impressions, driving maximum market share.
 - **Micro-Badges**: Highlighted with custom Sparkle indicators in the active table view for fast identification.
 
-### 3. 🎛️ Advanced Metric Slicers & Filters
+### 3. 🎯 Core Conversion Columns: Orders & CVR Trackers
+Renders rich conversion statistics in the main table to streamline real-time performance diagnostics:
+- **Direct Orders Metric**: Added immediately next to Clicks, showing true conversion scale in dense bold styling.
+- **Calculated CVR (Conversion Rate)**: Maps the dynamic efficiency ratio of purchases to clicks (`(Orders / Clicks) * 100`) directly beside Orders. Formatted in a soft emerald highlight, allowing operators to immediately flag stellar low-cpc converters.
+
+### 4. 🎛️ Advanced Metric Slicers & Filters
 Allows portfolio managers to execute deep surgical analyses with multiple concurrent filter groups:
 - **Target Match Type Selectors**: Instantly narrow focus down to `Exact`, `Phrase`, `Broad`, or `Expression / Auto` match types.
 - **Dual-Range Continuous Sliders**:
@@ -48,21 +54,22 @@ Allows portfolio managers to execute deep surgical analyses with multiple concur
   - **Bleeder Clicks with 0 Sales**: Fast-audit target leakage (clicks > 0 and 0 orders) to implement immediate safety holds.
   - **Star Converters (CVR ≥ 15%)**: Instantly crop elite-ranking keywords with high conversion vectors.
 
-### 4. 📋 Live Tab-Delimited Clipboard Mirroring
+### 5. 📋 Live Tab-Delimited Clipboard Mirroring
 Bypass clunky file downloads with instant spreadsheet interoperability:
 - **One-Click Quick Copy**: Copies all currently filtered and sorted keyword rows into the system clipboard.
 - **Exact Tab-Delimited Format**: Prefixes headers and columns precisely to support immediate, zero-formatting **Paste (`Ctrl+V`) directly into Microsoft Excel, Google Sheets, or Seller Central** bulk sheet templates.
 
-### 5. Live Baselines & Micro Overrides
+### 6. Live Baselines & Micro Overrides
 - **Custom "Current Bid" Ingest**: Operators can manual-input custom baseline bids directly in the table to align the model with real-time live Seller Central Console configurations instantly.
 - **Active Human Micro-steps**: Double-click or override any keyword directly to override the computer recommendations.
 - **Bulk Action Drawer**: Multi-select row checklist targets to increase/decrease bids by specific percentages, or bulk-set hard scale/reduction forces.
 
-### 6. Search Term Granularity & Negative Harvester
-While legacy tools guess, WesBid parses underlying customer search queries inside targeting branches and processes them under three intent-confidence tiers:
-- **🔍 Observing Phase** (1–2 clicks, 0 orders): Passive evaluation; blocks premature negative flagging.
-- **⚠️ Weak Waste Signal** (3–5 clicks, 0 orders): Flags keyword as a weak signal, advising manual monitoring.
-- **🚨 Hard Negative Candidate** (6+ clicks, 0 orders): Flags critical leakage. Recommends adding as Negative Exact in Seller Central to instantly cut bleeders.
+### 7. Search Term Granularity & Negative Harvester
+While legacy tools guess, WesBid parses underlying customer search queries inside targeting branches and processes them under three intent-confidence tiers. To prevent the *"1-click, 100% conversion"* error, it utilizes **Wesley's PPC Sample Size & Significance Calibration Bar** to label keyword maturity in the search terms subdrawer:
+- **🎲 Luck Zone (1–2 Clicks)**: Purely statistical variance. Alerts operators not to build premature bids off thin data.
+- **👀 Watch List (3–5 Clicks)**: Early watch signal. Recommends passive observation before applying aggressive scaling.
+- **📈 Emerging Signal (6–10 Clicks)**: Real data trends forming. Highlights mathematical significance building up.
+- **✅ Actionable Data (10+ Clicks)**: Excellent, statistically significant sample size ready for immediate strategic bidding overrides.
 
 ### 7. Market Intelligence & Niche Explorer v1
 Bypasses the fragile "Keyword-to-Single-ASIN" PPC trap. Supports the sophisticated Amazon-native targeting abstraction:
