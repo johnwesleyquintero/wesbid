@@ -53,7 +53,7 @@ interface BidTableProps {
   targetAcos?: number;
 }
 
-type SortField = "targeting" | "clicks" | "spend" | "sales" | "acos" | "cpc" | "currentBid" | "suggestedBid" | "action" | "ctr" | "orders";
+type SortField = "targeting" | "clicks" | "spend" | "sales" | "acos" | "cpc" | "currentBid" | "suggestedBid" | "action" | "ctr" | "orders" | "cvr";
 
 export default function BidTable({
   rows,
@@ -622,6 +622,17 @@ export default function BidTable({
               </th>
 
               <th 
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right bg-emerald-50/5 text-emerald-900"
+                onClick={() => handleSort("cvr")}
+                title="Conversion Rate (Orders / Clicks)"
+              >
+                <div className="flex items-center justify-end gap-1 font-bold">
+                  CVR
+                  {sortField === "cvr" && (sortAsc ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />)}
+                </div>
+              </th>
+
+              <th 
                 className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
                 onClick={() => handleSort("ctr")}
               >
@@ -715,7 +726,7 @@ export default function BidTable({
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
             {paginatedRows.length === 0 ? (
               <tr>
-                <td colSpan={13} className="p-12 text-center text-slate-400">
+                <td colSpan={14} className="p-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
                     <div className="p-3 bg-slate-100 text-slate-400 rounded-full border border-slate-200/50">
                       <Search className="w-5 h-5 text-slate-400" />
@@ -858,6 +869,9 @@ export default function BidTable({
                       <td className="p-4 text-right font-medium">{row.clicks.toLocaleString()}</td>
                       <td className="p-4 text-right font-bold text-slate-900 bg-emerald-50/10" title={`${row.orders.toLocaleString()} conversion order(s)`}>
                         {row.orders.toLocaleString()}
+                      </td>
+                      <td className="p-4 text-right bg-emerald-50/5 font-bold font-mono text-emerald-950" title={`Conversion Rate (CVR): ${(row.cvr * 100).toFixed(2)}%`}>
+                        {row.clicks > 0 ? `${(row.cvr * 100).toFixed(1)}%` : "0.0%"}
                       </td>
                       <td className="p-4 text-right font-medium text-slate-500">{(row.ctr * 100).toFixed(2)}%</td>
                       <td className="p-4 text-right font-mono font-bold text-indigo-950/90 bg-indigo-50/10" title="Historical Cost-Per-Click for this target">
@@ -1062,7 +1076,7 @@ export default function BidTable({
                     {/* Subtable details for query slices */}
                     {expandedRowIds.has(row.id) && row.searchTerms && row.searchTerms.length > 0 && (
                       <tr className="bg-slate-50/85">
-                        <td className="p-0 border-b border-slate-200" colSpan={13}>
+                        <td className="p-0 border-b border-slate-200" colSpan={14}>
                           <div className="px-6 py-4 border-l-4 border-emerald-500 bg-emerald-50/10 whitespace-normal sticky left-0 max-w-[calc(100vw-3.5rem)] sm:max-w-4xl lg:max-w-5xl">
                             <div className="flex items-center gap-2 mb-2">
                               <Sparkle className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
