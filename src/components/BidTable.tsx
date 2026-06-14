@@ -577,11 +577,11 @@ export default function BidTable({
       )}
 
       {/* Main Responsive Grid Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] lg:min-w-full text-left border-collapse" id="ppc-data-table">
+      <div className="overflow-x-auto shadow-sm border border-slate-200/80 rounded-xl bg-white">
+        <table className="w-full min-w-[1250px] text-left border-collapse" id="ppc-data-table">
           <thead>
             <tr className="bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-              <th className="p-4 w-12 text-center">
+              <th className="p-4 w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-20 bg-slate-50 border-r border-slate-100">
                 <input
                   type="checkbox"
                   checked={isAllSelectedOnPage}
@@ -591,7 +591,7 @@ export default function BidTable({
               </th>
               
               <th 
-                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors sticky left-[48px] z-20 bg-slate-50 border-r border-slate-200 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.08)] min-w-[280px] sm:min-w-[340px]"
                 onClick={() => handleSort("targeting")}
               >
                 <div className="flex items-center gap-1">
@@ -763,15 +763,28 @@ export default function BidTable({
                   }
                 }
 
+                // Ensure fully solid background colors for sticky columns so scrolled ad targets don't bleed through
+                const stickyBg = isTopPerformer
+                  ? "bg-[#fffbeb]" // opaque amber-50
+                  : checked
+                  ? "bg-[#f8fafc]" // opaque slate-50/70
+                  : "bg-white";    // opaque white
+
+                const hoverStickyBg = isTopPerformer 
+                  ? "group-hover:bg-[#fdf4db]" 
+                  : checked 
+                  ? "group-hover:bg-[#f1f5f9]" 
+                  : "group-hover:bg-slate-50";
+
                 return (
                   <React.Fragment key={row.id}>
-                    <tr className={`hover:bg-slate-50/50 transition-colors ${
+                    <tr className={`group hover:bg-slate-50/50 transition-colors ${
                       isTopPerformer 
                         ? "bg-amber-50/30 border-l-4 border-l-amber-500 font-medium" 
                         : ""
                     } ${checked ? "bg-slate-50/70" : ""} ${expandedRowIds.has(row.id) ? "bg-slate-50/40 border-b-0" : ""}`}>
                       {/* Checkbox */}
-                      <td className="p-4 text-center">
+                      <td className={`p-4 w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-10 border-r border-slate-100 transition-colors ${stickyBg} ${hoverStickyBg}`}>
                         <input
                           type="checkbox"
                           checked={checked}
@@ -781,7 +794,7 @@ export default function BidTable({
                       </td>
 
                       {/* Targeting details */}
-                      <td className="p-4 max-w-sm">
+                      <td className={`p-4 sticky left-[48px] z-10 border-r border-slate-200 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.08)] max-w-sm transition-colors ${stickyBg} ${hoverStickyBg}`}>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-semibold text-slate-900 tracking-tight break-words">
                             <HighlightText text={row.targeting} highlight={searchTerm} />
@@ -1050,7 +1063,7 @@ export default function BidTable({
                     {expandedRowIds.has(row.id) && row.searchTerms && row.searchTerms.length > 0 && (
                       <tr className="bg-slate-50/85">
                         <td className="p-0 border-b border-slate-200" colSpan={13}>
-                          <div className="px-6 py-4 border-l-4 border-emerald-500 bg-emerald-50/10 whitespace-normal">
+                          <div className="px-6 py-4 border-l-4 border-emerald-500 bg-emerald-50/10 whitespace-normal sticky left-0 max-w-[calc(100vw-3.5rem)] sm:max-w-4xl lg:max-w-5xl">
                             <div className="flex items-center gap-2 mb-2">
                               <Sparkle className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
                               <h4 className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
