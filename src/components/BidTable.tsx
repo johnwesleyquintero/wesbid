@@ -53,7 +53,7 @@ interface BidTableProps {
   targetAcos?: number;
 }
 
-type SortField = "targeting" | "clicks" | "spend" | "sales" | "acos" | "cpc" | "currentBid" | "suggestedBid" | "action" | "ctr";
+type SortField = "targeting" | "clicks" | "spend" | "sales" | "acos" | "cpc" | "currentBid" | "suggestedBid" | "action" | "ctr" | "orders";
 
 export default function BidTable({
   rows,
@@ -611,6 +611,17 @@ export default function BidTable({
               </th>
 
               <th 
+                className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right bg-emerald-50/10 text-emerald-950"
+                onClick={() => handleSort("orders")}
+                title="Total conversion purchases / orders for this targeting"
+              >
+                <div className="flex items-center justify-end gap-1 font-bold">
+                  Orders
+                  {sortField === "orders" && (sortAsc ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />)}
+                </div>
+              </th>
+
+              <th 
                 className="p-4 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-colors text-right"
                 onClick={() => handleSort("ctr")}
               >
@@ -704,7 +715,7 @@ export default function BidTable({
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
             {paginatedRows.length === 0 ? (
               <tr>
-                <td colSpan={12} className="p-12 text-center text-slate-400">
+                <td colSpan={13} className="p-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
                     <div className="p-3 bg-slate-100 text-slate-400 rounded-full border border-slate-200/50">
                       <Search className="w-5 h-5 text-slate-400" />
@@ -832,6 +843,9 @@ export default function BidTable({
 
                       {/* Metrics */}
                       <td className="p-4 text-right font-medium">{row.clicks.toLocaleString()}</td>
+                      <td className="p-4 text-right font-bold text-slate-900 bg-emerald-50/10" title={`${row.orders.toLocaleString()} conversion order(s)`}>
+                        {row.orders.toLocaleString()}
+                      </td>
                       <td className="p-4 text-right font-medium text-slate-500">{(row.ctr * 100).toFixed(2)}%</td>
                       <td className="p-4 text-right font-mono font-bold text-indigo-950/90 bg-indigo-50/10" title="Historical Cost-Per-Click for this target">
                         ${row.cpc.toFixed(2)}
@@ -1035,7 +1049,7 @@ export default function BidTable({
                     {/* Subtable details for query slices */}
                     {expandedRowIds.has(row.id) && row.searchTerms && row.searchTerms.length > 0 && (
                       <tr className="bg-slate-50/85">
-                        <td className="p-0 border-b border-slate-200" colSpan={12}>
+                        <td className="p-0 border-b border-slate-200" colSpan={13}>
                           <div className="px-6 py-4 border-l-4 border-emerald-500 bg-emerald-50/10 whitespace-normal">
                             <div className="flex items-center gap-2 mb-2">
                               <Sparkle className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
@@ -1043,19 +1057,67 @@ export default function BidTable({
                                 Customer Search Queries Rollup Breakdown ({row.searchTerms.length} slices)
                               </h4>
                             </div>
+
+                            {/* Operator Confidence Calibration Bar */}
+                            <div className="mb-4 bg-gradient-to-r from-emerald-500/[0.02] to-teal-500/[0.04] border border-emerald-500/10 rounded-xl p-3.5 text-slate-750 max-w-4xl shadow-3xs">
+                              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                <span className="text-xs">📊</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-950 font-sans">
+                                  Wesley's PPC Sample Size & Significance Calibration
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-normal">
+                                  — The PPC Operator's Guardrail Against Noise
+                                </span>
+                              </div>
+                              <p className="text-[10.5px] text-slate-650 mb-3 leading-relaxed">
+                                Avoid the <strong>"1 click, 100% conversion rate"</strong> trap! Experienced operators classify search term data by sample density so they don't over-optimize variance or raise bids prematurely.
+                              </p>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="p-2 rounded-lg bg-purple-50/60 border border-purple-100/60 flex items-center gap-2 text-[10px]">
+                                  <span className="text-base select-none">🎲</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-purple-950">Luck Zone</span>
+                                    <span className="text-[9px] text-slate-500 font-mono">1–2 Clicks</span>
+                                  </div>
+                                </div>
+                                <div className="p-2 rounded-lg bg-amber-50/60 border border-amber-100/60 flex items-center gap-2 text-[10px]">
+                                  <span className="text-base select-none">👀</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-amber-950">Watch List</span>
+                                    <span className="text-[9px] text-slate-500 font-mono">3–5 Clicks</span>
+                                  </div>
+                                </div>
+                                <div className="p-2 rounded-lg bg-blue-50/60 border border-blue-100/60 flex items-center gap-2 text-[10px]">
+                                  <span className="text-base select-none">📈</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-blue-950">Emerging Signal</span>
+                                    <span className="text-[9px] text-slate-500 font-mono">6–10 Clicks</span>
+                                  </div>
+                                </div>
+                                <div className="p-2 rounded-lg bg-emerald-50/70 border border-emerald-100/80 flex items-center gap-2 text-[10px]">
+                                  <span className="text-base select-none">✅</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-emerald-950">Actionable Data</span>
+                                    <span className="text-[9px] text-slate-600 font-mono">10+ Clicks</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
                             <div className="border border-slate-200/60 rounded-lg overflow-hidden bg-white shadow-3xs max-w-4xl">
                               <table className="w-full text-left border-collapse text-[11px] font-sans">
                                 <thead>
                                   <tr className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200 text-[10px] uppercase tracking-wider">
                                     <th className="p-2.5 pl-4">Raw Customer Search Query</th>
-                                    <th className="p-2.5 text-right w-24">Impressions</th>
-                                    <th className="p-2.5 text-right w-20">Clicks</th>
+                                    <th className="p-2.5 text-right w-20">Impressions</th>
+                                    <th className="p-2.5 text-right w-16">Clicks</th>
+                                    <th className="p-2.5 text-center text-slate-500/90 w-32 font-bold">Significance</th>
                                     <th className="p-2.5 text-right text-indigo-900 w-20 bg-indigo-50/5">CPC</th>
-                                    <th className="p-2.5 text-right text-slate-705 w-24">Spend</th>
-                                    <th className="p-2.5 text-right text-slate-905 w-24">Sales</th>
-                                    <th className="p-2.5 text-right w-20">ACOS</th>
-                                    <th className="p-2.5 text-right w-20">Orders</th>
-                                    <th className="p-2.5 text-right pr-4 text-emerald-900 bg-emerald-50/10 w-28 font-bold" title="Suggested Bid specifically for this customer search query based on its individual performance metrics and our Target ACOS.">Sugg. Bid</th>
+                                    <th className="p-2.5 text-right text-slate-705 w-20">Spend</th>
+                                    <th className="p-2.5 text-right text-slate-905 w-20">Sales</th>
+                                    <th className="p-2.5 text-right w-16">ACOS</th>
+                                    <th className="p-2.5 text-right w-16">Orders</th>
+                                    <th className="p-2.5 text-right pr-4 text-emerald-900 bg-emerald-50/10 w-26 font-bold" title="Suggested Bid specifically for this customer search query based on its individual performance metrics and our Target ACOS.">Sugg. Bid</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
@@ -1124,6 +1186,29 @@ export default function BidTable({
                                       suggBidVal = Math.max(0.10, Math.min(Math.max(4.00, currentBid * 2), suggBidVal));
                                     }
 
+                                    // Calculate significance details
+                                    let significanceLabel = "No Clicks";
+                                    let significanceStyle = "bg-slate-50 text-slate-400 border border-slate-200/40 text-[8.5px]";
+                                    let significanceDesc = "No clicks recorded yet.";
+                                    
+                                    if (term.clicks >= 1 && term.clicks <= 2) {
+                                      significanceLabel = "🎲 Luck Zone";
+                                      significanceStyle = "bg-purple-50 text-purple-700 border border-purple-200/50 font-bold";
+                                      significanceDesc = "1–2 Clicks: Purely variance. Do NOT treat a high conversion rate here as a deterministic winner! High sample-size risk.";
+                                    } else if (term.clicks >= 3 && term.clicks <= 5) {
+                                      significanceLabel = "👀 Watch List";
+                                      significanceStyle = "bg-amber-50 text-amber-700 border border-amber-200/50 font-bold";
+                                      significanceDesc = "3–5 Clicks: Early watch signal. Keep watching before scaling aggressively.";
+                                    } else if (term.clicks >= 6 && term.clicks <= 10) {
+                                      significanceLabel = "📈 Emerging Signal";
+                                      significanceStyle = "bg-blue-50 text-blue-700 border border-blue-200/50 font-bold";
+                                      significanceDesc = "6–10 Clicks: Real data trends forming. The data is starting to build real mathematical significance.";
+                                    } else if (term.clicks > 10) {
+                                      significanceLabel = "✅ Actionable Data";
+                                      significanceStyle = "bg-emerald-50 text-emerald-800 border border-emerald-200/50 font-extrabold";
+                                      significanceDesc = "10+ Clicks: Excellent size sample! Highly significant for strategic bid changes with confidence.";
+                                    }
+
                                     return (
                                       <tr key={tIdx} className="hover:bg-slate-50/70 transition-colors">
                                         <td className="p-2.5 pl-4 font-mono text-slate-900 select-all font-semibold break-all">
@@ -1156,7 +1241,15 @@ export default function BidTable({
                                           </div>
                                         </td>
                                         <td className="p-2.5 text-right font-mono text-slate-500">{term.impressions}</td>
-                                        <td className="p-2.5 text-right font-mono">{term.clicks}</td>
+                                        <td className="p-2.5 text-right font-mono font-bold text-slate-800">{term.clicks}</td>
+                                        <td className="p-2.5 text-center">
+                                          <span 
+                                            className={`inline-block px-2 py-0.5 rounded text-[8.5px] border select-none cursor-help ${significanceStyle}`}
+                                            title={significanceDesc}
+                                          >
+                                            {significanceLabel}
+                                          </span>
+                                        </td>
                                         <td className="p-2.5 text-right font-mono text-indigo-950 font-bold bg-indigo-50/5" title="Calculated Customer Search Query CPC (Spend / Clicks)">
                                           {term.clicks > 0 ? `$${(term.spend / term.clicks).toFixed(2)}` : "$0.00"}
                                         </td>
