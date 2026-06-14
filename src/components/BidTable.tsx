@@ -1104,7 +1104,7 @@ export default function BidTable({
                                   <span className="text-base select-none">🎲</span>
                                   <div className="flex flex-col">
                                     <span className="font-bold text-purple-950">Luck Zone</span>
-                                    <span className="text-[9px] text-slate-500 font-mono">1–2 Clicks</span>
+                                    <span className="text-[9px] text-slate-500 font-mono">1–2 Clicks + ≥1 Order</span>
                                   </div>
                                 </div>
                                 <div className="p-2 rounded-lg bg-amber-50/60 border border-amber-100/60 flex items-center gap-2 text-[10px]">
@@ -1219,9 +1219,15 @@ export default function BidTable({
                                     let significanceDesc = "No clicks recorded yet.";
                                     
                                     if (term.clicks >= 1 && term.clicks <= 2) {
-                                      significanceLabel = "🎲 Luck Zone";
-                                      significanceStyle = "bg-purple-50 text-purple-700 border border-purple-200/50 font-bold";
-                                      significanceDesc = "1–2 Clicks: Purely variance. Do NOT treat a high conversion rate here as a deterministic winner! High sample-size risk.";
+                                      if (term.orders >= 1) {
+                                        significanceLabel = "🎲 Luck Zone";
+                                        significanceStyle = "bg-purple-50 text-purple-700 border border-purple-200/50 font-bold";
+                                        significanceDesc = "1–2 Clicks with at least 1 order: Purely lucky variance. Do NOT treat a high conversion rate here as a deterministic winner! High sample-size risk.";
+                                      } else {
+                                        significanceLabel = "🔍 Observing";
+                                        significanceStyle = "bg-slate-100 text-slate-600 border border-slate-200 font-bold";
+                                        significanceDesc = "1–2 Clicks with 0 orders: Observation phase active. High statistical variance; too early to declare success or waste.";
+                                      }
                                     } else if (term.clicks >= 3 && term.clicks <= 5) {
                                       significanceLabel = "👀 Watch List";
                                       significanceStyle = "bg-amber-50 text-amber-700 border border-amber-200/50 font-bold";

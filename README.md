@@ -66,7 +66,7 @@ Bypass clunky file downloads with instant spreadsheet interoperability:
 
 ### 7. Search Term Granularity & Negative Harvester
 While legacy tools guess, WesBid parses underlying customer search queries inside targeting branches and processes them under three intent-confidence tiers. To prevent the *"1-click, 100% conversion"* error, it utilizes **Wesley's PPC Sample Size & Significance Calibration Bar** to label keyword maturity in the search terms subdrawer:
-- **🎲 Luck Zone (1–2 Clicks)**: Purely statistical variance. Alerts operators not to build premature bids off thin data.
+- **🎲 Luck Zone (1–2 Clicks with ≥1 Order)**: Purely statistical lucky variance. Warns operators not to count a high conversion rate on thin sample structures as definitive. Otherwise classified as *Observing*.
 - **👀 Watch List (3–5 Clicks)**: Early watch signal. Recommends passive observation before applying aggressive scaling.
 - **📈 Emerging Signal (6–10 Clicks)**: Real data trends forming. Highlights mathematical significance building up.
 - **✅ Actionable Data (10+ Clicks)**: Excellent, statistically significant sample size ready for immediate strategic bidding overrides.
