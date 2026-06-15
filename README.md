@@ -32,6 +32,7 @@ $$\text{Recommended Target Bid} = \text{Baseline CPC} \times \frac{\text{Target 
   - **Exact Match Priority**: High-confidence targets receive elevated efficiency thresholds, lowered learning boundaries, and optimized safety limits to scale dominance.
   - **Broad/Auto Protection**: Controls automated search leakage by tightening click thresholds and accelerating waste penalties.
   - **ASIN (PAT) Placements**: Custom parameter bounds adjusted dynamically for product detail pages.
+- **💾 JSON Configuration Backup & Restore**: Operators can backup customized Strategy Presets, learning click thresholds, math dampeners, match overrides, and dynamic active confidence sliders as standalone `.json` config profile files. Restore setups instantly to clone parameters between workspaces or sync desktop environments.
 
 ### 2. ⭐ Top Performers Quick-Filter & Bid Boost
 An advanced, automated targeting filter designed to isolate and supercharge high-velocity keywords:
@@ -92,7 +93,8 @@ $$\text{Shopper Intent} \longrightarrow \text{Niche Grouping} \longrightarrow \t
 Provides seamless standalone workspace integrations to avoid bulky or continuous data import operations:
 - **Direct Clipboard Pasting**: Operators can copy the dynamic summary metric tiles or horizontal lists directly from the Amazon Seller Central Ad Console and drop them raw into the parser.
 - **Intelligent Signature Recognition**: Automatically scans and strips formatting, resolving **Date range**, **Clicks**, **CPC**, **Purchases/Orders**, **Sales**, and **Impressions** sequentially from unstructured blocks.
-- **WesBid Bidding Synthesis**: Dynamically calculates estimated spend, CTR, CVR, ACOS, and executes safety threshold algorithms to output a pristine **New Suggested Bid** with step-by-step mathematical proofs.
+- **WesBid Bidding Synthesis**: Dynamically calculates estimated spend, CTR, CVR, ACOS, and executes safety threshold algorithms to output a pristine **New Suggested Bid** with step-by-step mathematical proofs (supporting active, click-driven average-CPC fallbacks even if zero sales are recorded from day 1).
+- **📝 Export Row Data for Tracking Sheets**: A dedicated **Copy Data** button formats parsed performance metrics as a tab-delimited, single-row string (including Date range, Impressions, Clicks, Spend, Sales, ACOS, and Bids) ready to copy-paste directly into weekly, monthly, or daily tracking sheets.
 - **Adaptive Sandbox Sync**: Features a "Save to Sandbox Scratchpad" connector, enabling operators to immediately send parsed results into the scratchpad evaluation table for concurrent batch calculations alongside synthetic keyword parameters.
 
 ---
