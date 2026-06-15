@@ -23,7 +23,8 @@ import {
   ChevronRight,
   Compass,
   FolderSync,
-  Calculator
+  Calculator,
+  Clipboard
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation, OptimizerConfig, StrategyPreset, StrategyDefinition } from "./types";
 import { STRATEGY_PRESETS, calculateRowBid, calculateScenarioImpact } from "./lib/bidEngine";
@@ -37,6 +38,7 @@ import AssistantInsight from "./components/AssistantInsight";
 import NicheDiscovery from "./components/NicheDiscovery";
 import IntentHarvester from "./components/IntentHarvester";
 import ManualCalculator from "./components/ManualCalculator";
+import QuickAcosCalculator from "./components/QuickAcosCalculator";
 
 export default function App() {
   // PPC Data States
@@ -93,7 +95,7 @@ export default function App() {
   }));
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES" | "DEDUP" | "CALCULATOR">("TABLE");
+  const [activeTab, setActiveTab] = useState<"TABLE" | "SUMMARY" | "COPILOT" | "NICHES" | "DEDUP" | "CALCULATOR" | "QUICK_CALC">("TABLE");
 
   // Sidebar open/collapse state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -406,17 +408,28 @@ export default function App() {
               Upload raw Amazon PPC search term or targeting reports to simulate overall catalog impacts, or switch to the manual calculator for instant target bid mathematical breakdown.
             </p>
             
-            <div className="inline-flex p-1 bg-slate-200/60 rounded-xl border border-slate-250 select-none">
+            <div className="inline-flex flex-wrap p-1 bg-slate-200/60 rounded-xl border border-slate-250 select-none justify-center gap-1">
               <button
                 onClick={() => setActiveTab("TABLE")}
                 className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition select-none ${
-                  activeTab !== "CALCULATOR"
+                  activeTab !== "CALCULATOR" && activeTab !== "QUICK_CALC"
                     ? "bg-slate-900 text-white shadow-xs"
                     : "text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 <UploadCloud className="w-4 h-4" />
                 <span>Upload Report Sheets</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("QUICK_CALC")}
+                className={`flex items-center gap-2 px-5 sm:px-7 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition select-none ${
+                  activeTab === "QUICK_CALC"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <Clipboard className="w-4 h-4 text-brand" />
+                <span>Quick ACOS Calculator</span>
               </button>
               <button
                 onClick={() => setActiveTab("CALCULATOR")}
@@ -427,7 +440,7 @@ export default function App() {
                 }`}
               >
                 <Calculator className="w-4 h-4" />
-                <span>Instant Bid Calculator</span>
+                <span>Instant Sandbox Calc</span>
               </button>
             </div>
           </div>
@@ -443,6 +456,17 @@ export default function App() {
                   </div>
                 </div>
                 <ManualCalculator />
+              </div>
+            ) : activeTab === "QUICK_CALC" ? (
+              <div className="max-w-6xl mx-auto space-y-4 animate-fade-in">
+                <div className="bg-indigo-50/60 border border-indigo-150 rounded-xl p-4 text-xs font-semibold text-indigo-805 leading-relaxed text-indigo-800 flex items-start gap-2.5 mb-2 shadow-3xs">
+                  <Info className="w-4.5 h-4.5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-extrabold block mb-0.5 text-indigo-950">Quick ACOS Calculator active:</span>
+                    Paste raw or formatted Amazon Advertising widget statistics directly to calculate bid alignment with custom targets instantly.
+                  </div>
+                </div>
+                <QuickAcosCalculator />
               </div>
             ) : (
               <UploadDropzone onDataLoaded={handleDataLoaded} />
@@ -1005,6 +1029,18 @@ export default function App() {
                         <Calculator className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
                         Manual Bid Calculator
                       </button>
+
+                      <button
+                        onClick={() => setActiveTab("QUICK_CALC")}
+                        className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4.5 py-2 text-xs font-semibold rounded-md transition-all select-none cursor-pointer whitespace-nowrap ${
+                          activeTab === "QUICK_CALC" 
+                            ? "bg-white text-slate-900 shadow-xs font-bold font-sans" 
+                            : "text-slate-600 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <Clipboard className="w-3.5 h-3.5 text-brand animate-pulse" />
+                        Quick ACOS Calculator
+                      </button>
                     </div>
                   </div>
 
@@ -1078,6 +1114,10 @@ export default function App() {
 
                 {activeTab === "CALCULATOR" && (
                   <ManualCalculator />
+                )}
+
+                {activeTab === "QUICK_CALC" && (
+                  <QuickAcosCalculator />
                 )}
               </div>
 

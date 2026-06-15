@@ -71,7 +71,7 @@ While legacy tools guess, WesBid parses underlying customer search queries insid
 - **📈 Emerging Signal (6–10 Clicks)**: Real data trends forming. Highlights mathematical significance building up.
 - **✅ Actionable Data (10+ Clicks)**: Excellent, statistically significant sample size ready for immediate strategic bidding overrides.
 
-### 7. Market Intelligence & Niche Explorer v1
+### 8. Market Intelligence & Niche Explorer v1
 Bypasses the fragile "Keyword-to-Single-ASIN" PPC trap. Supports the sophisticated Amazon-native targeting abstraction:
 $$\text{Shopper Intent} \longrightarrow \text{Niche Grouping} \longrightarrow \text{ASIN Competitor Clusters} \longrightarrow \text{Targeting Set Injection}$$
 
@@ -79,14 +79,21 @@ $$\text{Shopper Intent} \longrightarrow \text{Niche Grouping} \longrightarrow \t
 - **Live Amazon Validation Integration**: Directly provides high-value search shortcuts so operators can trigger direct validation searches on Amazon with a single click, identifying top competitor vulnerabilities (poor ratings, premium pricing deltas, low-quality setups).
 - **Target Cluster Sandbox Ingest**: Formulates structured campaigns featuring custom strategic multipliers (Conquest / Defense / Harvest models) based on manually verified competitor listing ASIN inputs.
 
-### 8. Analytics Delta & Visualizers
+### 9. Analytics Delta & Visualizers
 - **Simulated Spend Elasticity**: Real-time estimates of incoming budget shifts, variance percentages, and average recommendations.
 - **Area-Area Distribution Charts**: Built with standard fully responsive Recharts displaying current vs. recommended bid distribution to easily spot anomalies.
 
-### 9. WesBid Co-pilot AI Memo
+### 10. WesBid Co-pilot AI Memo
 - Powered by a safe full-stack server proxying **Gemini API** requests securely.
 - **Parse-Resilient Safe Extraction**: Augmented with robust regex-slicing error handlers that rescue valid JSON objects out of dirty response outputs, preventing unexpected crashes due to network gateway warnings or prefixing.
 - Diagnoses structural inefficiencies, audits top star-performers, and structures localized actionable checklists to coordinate manual imports.
+
+### 11. ⚡ Quick ACOS Calculator & Direct Console Parser
+Provides seamless standalone workspace integrations to avoid bulky or continuous data import operations:
+- **Direct Clipboard Pasting**: Operators can copy the dynamic summary metric tiles or horizontal lists directly from the Amazon Seller Central Ad Console and drop them raw into the parser.
+- **Intelligent Signature Recognition**: Automatically scans and strips formatting, resolving **Date range**, **Clicks**, **CPC**, **Purchases/Orders**, **Sales**, and **Impressions** sequentially from unstructured blocks.
+- **WesBid Bidding Synthesis**: Dynamically calculates estimated spend, CTR, CVR, ACOS, and executes safety threshold algorithms to output a pristine **New Suggested Bid** with step-by-step mathematical proofs.
+- **Adaptive Sandbox Sync**: Features a "Save to Sandbox Scratchpad" connector, enabling operators to immediately send parsed results into the scratchpad evaluation table for concurrent batch calculations alongside synthetic keyword parameters.
 
 ---
 
