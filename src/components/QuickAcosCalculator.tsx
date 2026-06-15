@@ -38,6 +38,7 @@ export default function QuickAcosCalculator() {
   });
 
   const [copiedBid, setCopiedBid] = useState(false);
+  const [copiedData, setCopiedData] = useState(false);
   const [addedPlaceholder, setAddedPlaceholder] = useState<string | null>(null);
 
   // Sync states to localStorage
@@ -284,6 +285,45 @@ View details`;
     navigator.clipboard.writeText(`$${calculatedResult.computedBid.toFixed(2)}`);
     setCopiedBid(true);
     setTimeout(() => setCopiedBid(false), 2000);
+  };
+
+  const handleCopyData = () => {
+    if (!parsedData) return;
+    
+    const headers = [
+      "Date Range",
+      "Impressions",
+      "Clicks",
+      "CTR (%)",
+      "Purchases/Orders",
+      "CVR (%)",
+      "Avg CPC ($)",
+      "Ad Spend ($)",
+      "Gross Sales ($)",
+      "Current ACOS (%)",
+      "Target ACOS (%)",
+      "Suggested Bid ($)"
+    ].join("\t");
+
+    const rowValues = [
+      parsedData.dateRange || "N/A",
+      parsedData.impressions,
+      parsedData.clicks,
+      parsedData.ctr.toFixed(2) + "%",
+      parsedData.purchases,
+      parsedData.cvr.toFixed(2) + "%",
+      "$" + parsedData.cpc.toFixed(2),
+      "$" + parsedData.spend.toFixed(2),
+      "$" + parsedData.sales.toFixed(2),
+      parsedData.acos.toFixed(2) + "%",
+      targetAcos.toFixed(2) + "%",
+      calculatedResult ? "$" + calculatedResult.computedBid.toFixed(2) : "$0.00"
+    ].join("\t");
+
+    const tsvData = `${headers}\n${rowValues}`;
+    navigator.clipboard.writeText(tsvData);
+    setCopiedData(true);
+    setTimeout(() => setCopiedData(false), 2000);
   };
 
   // Add the newly calculated row directly to the main Scratchpad table
@@ -594,12 +634,31 @@ View details`;
                         {copiedBid ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copied $${calculatedResult.computedBid.toFixed(2)}!</span>
+                            <span className="text-emerald-400">Copied ${calculatedResult.computedBid.toFixed(2)}!</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
                             <span>Copy Custom Bid</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyData}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition cursor-pointer select-none"
+                        title="Copy parsed performance metrics as tab-delimited spreadsheet row"
+                      >
+                        {copiedData ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-100" />
+                            <span className="text-emerald-50">Copied Row Data!</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Copy Data</span>
                           </>
                         )}
                       </button>
