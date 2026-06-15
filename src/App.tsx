@@ -14,6 +14,7 @@ import {
   FileSpreadsheet, 
   TrendingUp, 
   Download, 
+  Upload,
   X, 
   Info,
   Check,
@@ -99,6 +100,89 @@ export default function App() {
 
   // Sidebar open/collapse state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Configuration JSON profile state
+  const [importStatus, setImportStatus] = useState<{ type: "success" | "error" | null; message: string }>({ type: null, message: "" });
+
+  const handleExportConfig = () => {
+    try {
+      const exportObject = {
+        meta: {
+          app: "WesBid Premium Optimizer",
+          version: "3.0",
+          exportedAt: new Date().toISOString(),
+          activeStrategyPreset: activeStrategy
+        },
+        config: config
+      };
+      
+      const jsonString = JSON.stringify(exportObject, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `wesbid-tuning-${activeStrategy.toLowerCase()}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Failed to export configuration: " + (e as Error).message);
+    }
+  };
+
+  const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        
+        let loadedConfig: Partial<OptimizerConfig> | null = null;
+        if (parsed && parsed.config) {
+          loadedConfig = parsed.config;
+        } else if (parsed && (typeof parsed.targetAcos === "number" || typeof parsed.minClicks === "number")) {
+          loadedConfig = parsed;
+        }
+
+        if (!loadedConfig) {
+          throw new Error("Invalid schema structure. No configuration profiles found.");
+        }
+
+        const cleanConfig: OptimizerConfig = {
+          targetAcos: typeof loadedConfig.targetAcos === "number" ? Math.max(5, Math.min(120, loadedConfig.targetAcos)) : config.targetAcos,
+          minClicks: typeof loadedConfig.minClicks === "number" ? Math.max(1, Math.min(100, loadedConfig.minClicks)) : config.minClicks,
+          minBid: typeof loadedConfig.minBid === "number" ? Math.max(0.01, Math.min(5.00, loadedConfig.minBid)) : config.minBid,
+          maxBid: typeof loadedConfig.maxBid === "number" ? Math.max(1.00, Math.min(25.00, loadedConfig.maxBid)) : config.maxBid,
+          dampening: typeof loadedConfig.dampening === "number" ? Math.max(0.05, Math.min(1.00, loadedConfig.dampening)) : config.dampening,
+          bleederClicks: typeof loadedConfig.bleederClicks === "number" ? Math.max(2, Math.min(50, loadedConfig.bleederClicks)) : config.bleederClicks,
+          bleederReduction: typeof loadedConfig.bleederReduction === "number" ? Math.max(5, Math.min(95, loadedConfig.bleederReduction)) : config.bleederReduction,
+          enableV3: typeof loadedConfig.enableV3 === "boolean" ? loadedConfig.enableV3 : (config.enableV3 ?? true),
+          confidenceScale: typeof loadedConfig.confidenceScale === "number" ? Math.max(10, Math.min(100, loadedConfig.confidenceScale)) : (config.confidenceScale ?? 75),
+          adaptiveDecay: typeof loadedConfig.adaptiveDecay === "number" ? Math.max(0, Math.min(100, loadedConfig.adaptiveDecay)) : (config.adaptiveDecay ?? 15),
+          exactMatchBoost: typeof loadedConfig.exactMatchBoost === "number" ? Math.max(0, Math.min(100, loadedConfig.exactMatchBoost)) : (config.exactMatchBoost ?? 10),
+          broadMatchDiscount: typeof loadedConfig.broadMatchDiscount === "number" ? Math.max(0, Math.min(100, loadedConfig.broadMatchDiscount)) : (config.broadMatchDiscount ?? 15),
+          tosPlacementBoost: typeof loadedConfig.tosPlacementBoost === "number" ? Math.max(0, Math.min(100, loadedConfig.tosPlacementBoost)) : (config.tosPlacementBoost ?? 15)
+        };
+
+        if (parsed.meta?.activeStrategyPreset) {
+          setActiveStrategy(parsed.meta.activeStrategyPreset);
+        }
+
+        setConfig(cleanConfig);
+        setImportStatus({ type: "success", message: "Config profile loaded!" });
+        setTimeout(() => setImportStatus({ type: null, message: "" }), 3500);
+      } catch (err) {
+        setImportStatus({ type: "error", message: `Load failed: ${(err as Error).message}` });
+        setTimeout(() => setImportStatus({ type: null, message: "" }), 5000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   // Sync state mutations to localStorage
   useEffect(() => {
@@ -901,6 +985,52 @@ export default function App() {
                     </div>
                   </div>
                 )}
+
+                {/* 8. Config Import / Export JSON Tuning Profiles */}
+                <div className="pt-4 border-t border-slate-200 mt-2 space-y-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Tuning Profile Backup</span>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2.5">
+                    <p className="text-[9.5px] text-slate-500 leading-normal font-medium">
+                      Back up your current Strategy Presets, learning click thresholds, math dampeners, match overrides, and dynamic active confidence sliders to a standalone JSON configuration file.
+                    </p>
+                    
+                    {importStatus.message && (
+                      <div className={`p-2 rounded text-[10px] font-semibold flex items-center gap-1.5 leading-snug animate-fade-in ${
+                        importStatus.type === "success" 
+                          ? "bg-emerald-50 text-emerald-800 border border-emerald-150" 
+                          : "bg-rose-50 text-rose-800 border border-rose-150"
+                      }`}>
+                        {importStatus.type === "success" ? "✅" : "⚠️"} {importStatus.message}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleExportConfig}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-white border border-slate-250 hover:bg-slate-50 hover:border-slate-350 text-slate-700 font-bold rounded text-[10.5px] transition cursor-pointer select-none shadow-3xs"
+                        title="Download configuration to desktop as a JSON profile"
+                      >
+                        <Download className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Backup JSON</span>
+                      </button>
+
+                      <label
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 text-indigo-700 font-bold rounded text-[10.5px] transition cursor-pointer select-none shadow-3xs text-center"
+                        title="Restore previously saved tuning profile from computer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Restore JSON</span>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={handleImportConfig}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </section>
           )}
