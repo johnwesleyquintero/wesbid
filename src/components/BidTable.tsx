@@ -704,10 +704,10 @@ export default function BidTable({
                 </div>
               </th>
 
-              <th className="p-4 text-right text-indigo-900 border-l border-slate-100 w-44 sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]" title="Simulated CPC, ACOS, and ROAS using historical ad spend elasticity and conversion model assumptions. Not a performance guarantee.">
+              <th className="p-4 text-right text-indigo-900 border-l border-slate-100 w-36 sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]" title="Estimated ACOS showing the predicted convergence under the suggested or overridden bid.">
                 <div className="flex flex-col items-end">
-                  <span className="text-[10px] tracking-wider uppercase font-bold">Model Estimates</span>
-                  <span className="text-[8px] text-slate-400 normal-case font-normal font-sans">Simulated CPC • ACOS • ROAS</span>
+                  <span className="text-[10px] tracking-wider uppercase font-bold">Est. ACoS</span>
+                  <span className="text-[8px] text-slate-400 normal-case font-normal font-sans">Formula Convergence</span>
                 </div>
               </th>
 
@@ -1023,43 +1023,24 @@ export default function BidTable({
                           }
 
                           const projAcos = projSales > 0 ? (projSpend / projSales) : 0;
-                          const projRoas = projSpend > 0 ? (projSales / projSpend) : (projSales > 0 ? projSales / 0.01 : 0);
-
-                          const hasSales = row.sales > 0;
+                          const estAcosVal = row.sales > 0
+                            ? projAcos * 100
+                            : (suggBid > 0 ? (row.cpc / suggBid) * targetAcos : targetAcos);
 
                           return (
-                            <div className="flex flex-col items-end gap-0.5" title="Historical data combined with spend elasticity coefficient (e ~ 0.75).">
-                              {/* Projected CPC */}
-                              <div className="flex items-center gap-1 leading-none">
-                                <span className="text-[9px] text-slate-400">Sim. CPC:</span>
-                                <span className="font-mono text-slate-700 font-semibold text-[11px]">${projCpc.toFixed(2)}</span>
-                              </div>
-
-                              {/* Projected ACOS */}
-                              <div className="flex items-center gap-1 leading-none">
-                                <span className="text-[9px] text-slate-400">Sim. ACOS:</span>
-                                {hasSales ? (
-                                  <span className={`font-mono font-bold text-[11px] ${
-                                    projAcos > 0.40 ? "text-rose-600" : (projAcos < 0.20 ? "text-emerald-600" : "text-indigo-650")
-                                  }`}>
-                                    {(projAcos * 100).toFixed(0)}%
-                                  </span>
-                                ) : (
-                                  <span className="font-mono text-slate-400 text-[11px]">-</span>
-                                )}
-                              </div>
-
-                              {/* Projected ROAS */}
-                              <div className="flex items-center gap-1 leading-none">
-                                <span className="text-[9px] text-slate-400">Sim. ROAS:</span>
-                                {hasSales && projSpend > 0 ? (
-                                  <span className="font-mono font-bold text-indigo-750 text-[11px]">
-                                    {projRoas.toFixed(1)}x
-                                  </span>
-                                ) : (
-                                  <span className="font-mono text-slate-400 text-[11px]">-</span>
-                                )}
-                              </div>
+                            <div className="flex flex-col items-end justify-center" title={row.sales > 0 ? "Estimated ACOS based on historical spend elasticity and conversion model projections." : "Estimated ACOS based on average CPC and Suggested Bid target-alignment ratio."}>
+                              <span className={`font-mono font-bold text-[11.5px] ${
+                                estAcosVal > targetAcos * 1.25 
+                                  ? "text-rose-600 bg-rose-50/40 px-1.5 py-0.5 rounded border border-rose-100/30" 
+                                  : estAcosVal < targetAcos * 0.85 
+                                  ? "text-emerald-600 bg-emerald-50/40 px-1.5 py-0.5 rounded border border-emerald-100/30" 
+                                  : "text-indigo-650 bg-indigo-50/10 px-1.5 py-0.5 rounded"
+                              }`}>
+                                {estAcosVal.toFixed(1)}%
+                              </span>
+                              <span className="text-[8px] text-slate-400 font-sans tracking-wide mt-1 font-medium whitespace-nowrap">
+                                {row.sales > 0 ? "Elastic Model" : "Formula Pivot"}
+                              </span>
                             </div>
                           );
                         })()}
