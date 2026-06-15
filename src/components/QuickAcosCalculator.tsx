@@ -215,35 +215,49 @@ export default function QuickAcosCalculator() {
 
   // Compute live bidding calculations for the parsed target
   const calculatedResult = useMemo(() => {
-    if (!parsedData || parsedData.cpc <= 0 || parsedData.acos <= 0) return null;
+    if (!parsedData) return null;
 
     const currentAcosDec = parsedData.acos / 100;
     const targetAcosDec = targetAcos / 100;
     const thresholdDec = 0.84 * targetAcosDec;
-    const isUnderThreshold = currentAcosDec < thresholdDec;
+    
+    const hasSales = parsedData.acos > 0;
+    const hasClicks = parsedData.clicks > 0;
+    const isUnderThreshold = hasSales && (currentAcosDec < thresholdDec);
 
     let computedBid = 0;
-    if (currentAcosDec <= 0) {
-      computedBid = parsedData.cpc;
+    let formulaExplanation = "";
+    let mathStep = "";
+
+    if (!hasClicks) {
+      computedBid = 0.00;
+      formulaExplanation = "No clicks or cost-per-click data parsed yet. Once your targets record clicks, Wesley's algorithm will calculate optimal alignment bids dynamically.";
+      mathStep = "$0.00 (Requires clicks)";
+    } else if (!hasSales) {
+      computedBid = parsedData.cpc > 0 ? parsedData.cpc : 0.05;
+      formulaExplanation = `Since there are clicks (${parsedData.clicks}) but 0 sales recorded yet (ACOS is 0.0%), we automatically set the recommended bid equal to your baseline average CPC ($${computedBid.toFixed(2)}) to sustain traffic and safely collect performance data.`;
+      mathStep = `$${computedBid.toFixed(2)} (Avg. CPC Fallback)`;
     } else if (isUnderThreshold) {
       computedBid = parsedData.cpc * 1.20;
+      formulaExplanation = `Since parsed ACOS (${parsedData.acos.toFixed(1)}%) is less than 84% of your target threshold (${(thresholdDec * 100).toFixed(1)}%), we have triggered Wesley's High-Performing Bid scaling: average CPC ($${parsedData.cpc.toFixed(2)}) is boosted by +20% to win premium placements.`;
+      mathStep = `$${parsedData.cpc.toFixed(2)} × 1.20 = $${computedBid.toFixed(2)}`;
     } else {
       computedBid = (parsedData.cpc / currentAcosDec) * targetAcosDec;
+      formulaExplanation = `Since parsed ACOS (${parsedData.acos.toFixed(1)}%) is above the safety threshold limit (${(thresholdDec * 100).toFixed(1)}%), we automatically taper the bid to restore profitability: (Avg CPC $${parsedData.cpc.toFixed(2)} / Acos ${(currentAcosDec).toFixed(4)}) × Target Acos ${(targetAcosDec).toFixed(2)}.`;
+      mathStep = `($${parsedData.cpc.toFixed(2)} / ${(parsedData.acos / 100).toFixed(4)}) × ${(targetAcos / 100).toFixed(2)} = $${computedBid.toFixed(2)}`;
     }
 
     // Round nicely to cents
-    computedBid = Math.max(0.02, Number(computedBid.toFixed(2)));
+    computedBid = Math.max(computedBid > 0 ? 0.02 : 0, Number(computedBid.toFixed(2)));
 
     return {
       computedBid,
       isUnderThreshold,
-      thresholdPct: thresholdDec * 100,
-      formulaExplanation: isUnderThreshold
-        ? `Since parsed ACOS (${parsedData.acos.toFixed(1)}%) is less than 84% of your target threshold (${(thresholdDec * 100).toFixed(1)}%), we have triggered Wesley's High-Performing Bid scaling: average CPC ($${parsedData.cpc.toFixed(2)}) is boosted by +20%.`
-        : `Since parsed ACOS (${parsedData.acos.toFixed(1)}%) is above the safety threshold limit (${(thresholdDec * 100).toFixed(1)}%), we adjust the bid downwards to align with targets: (CPC $${parsedData.cpc.toFixed(2)} / Acos ${(currentAcosDec).toFixed(4)}) × Target Acos ${(targetAcosDec).toFixed(2)}.`,
-      mathStep: isUnderThreshold
-        ? `$${parsedData.cpc.toFixed(2)} × 1.20 = $${computedBid.toFixed(2)}`
-        : `($${parsedData.cpc.toFixed(2)} / ${(parsedData.acos / 100).toFixed(4)}) × ${(targetAcos / 100).toFixed(2)} = $${computedBid.toFixed(2)}`
+      thresholdPct: thresholdDec * 105, // visual padding
+      formulaExplanation,
+      mathStep,
+      hasClicks,
+      hasSales
     };
   }, [parsedData, targetAcos]);
 
