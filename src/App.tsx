@@ -25,7 +25,9 @@ import {
   Compass,
   FolderSync,
   Calculator,
-  Clipboard
+  Clipboard,
+  Sun,
+  Moon
 } from "lucide-react";
 import { AmazonPpcRow, BidRecommendation, OptimizerConfig, StrategyPreset, StrategyDefinition } from "./types";
 import { STRATEGY_PRESETS, calculateRowBid, calculateScenarioImpact } from "./lib/bidEngine";
@@ -42,6 +44,35 @@ import ManualCalculator from "./components/ManualCalculator";
 import QuickAcosCalculator from "./components/QuickAcosCalculator";
 
 export default function App() {
+  // Theme selection state (light / dark)
+  const [theme, setTheme] = useState<"light" | "dark">((() => {
+    try {
+      const saved = localStorage.getItem("wesbid_theme");
+      if (saved === "light" || saved === "dark") return saved;
+      return "light";
+    } catch (e) {
+      return "light";
+    }
+  })());
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("wesbid_theme", theme);
+      const root = window.document.documentElement;
+      if (theme === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    } catch (e) {
+      console.warn("Could not save theme:", e);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === "light" ? "dark" : "light"));
+  };
+
   // PPC Data States
   const [ppcRows, setPpcRows] = useState<AmazonPpcRow[]>(() => {
     try {
@@ -436,7 +467,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans" id="app-container">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors duration-200" id="app-container">
       {/* Prime Header navigation block */}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md select-none">
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
@@ -453,6 +484,32 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+          {/* Custom Theme Selector Switch */}
+          <div className="flex items-center bg-slate-950/50 border border-slate-800 p-0.5 rounded-lg select-none shrink-0" id="theme-selector-pill">
+            <button
+              onClick={() => setTheme("light")}
+              className={`p-1.5 rounded-md transition cursor-pointer ${
+                theme === "light" 
+                  ? "bg-slate-800 text-amber-300 shadow-xs" 
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+              title="Light Mode"
+            >
+              <Sun className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setTheme("dark")}
+              className={`p-1.5 rounded-md transition cursor-pointer ${
+                theme === "dark" 
+                  ? "bg-slate-800 text-indigo-400 shadow-xs" 
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+              title="Dark Mode"
+            >
+              <Moon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           {ppcRows.length > 0 && (
             <div className="flex items-center gap-1.5 bg-slate-800 text-slate-300 font-semibold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md border border-slate-700 select-none text-[9px] sm:text-[10px] truncate max-w-[120px] xs:max-w-[160px] sm:max-w-44 md:max-w-64">
               <span className="text-slate-400">📄</span>
